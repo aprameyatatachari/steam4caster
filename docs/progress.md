@@ -18,6 +18,13 @@ each exit criterion can be checked.
 | Live server | uvicorn + HTTP requests (fake provider, SQLite) | Health, register, search, forecast, recommendation, metrics: working |
 | CLI | migrate, seed-demo, evaluate-baseline, train, list-models, export-openapi | Working |
 
+### Update: PostgreSQL verified
+
+Docker was later brought up on the development machine. The migration applies to
+PostgreSQL 16 and the full suite passes against it (181 passed, none skipped), run with
+`TEST_DATABASE_URL` pointing at a separate test database. The first bullet below is
+therefore resolved; the image build, Redis and a real Celery broker are still unverified.
+
 ### Not verified
 
 These could not be run on the development machine because Docker Desktop failed to start

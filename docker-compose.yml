@@ -21,7 +21,9 @@ services:
       POSTGRES_USER: steam4caster
       POSTGRES_PASSWORD: steam4caster
       POSTGRES_DB: steam4caster
-    ports: ["5432:5432"]
+    # Host port 55432, not 5432: a PostgreSQL already installed on the machine often
+    # owns 5432 and would silently take the connection instead of this container.
+    ports: ["55432:5432"]
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:

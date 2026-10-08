@@ -36,7 +36,7 @@ class Settings(BaseSettings):
     frontend_base_url: str = "http://localhost:3000"
 
     # --- storage -----------------------------------------------------------
-    database_url: str = "postgresql+asyncpg://steam4caster:steam4caster@localhost:5432/steam4caster"
+    database_url: str = "postgresql+asyncpg://steam4caster:steam4caster@localhost:55432/steam4caster"
     redis_url: str = "redis://localhost:6379/0"
     # "redis" in real deployments; "memory" is a per-process stand-in for tests/dev.
     kv_backend: Literal["redis", "memory"] = "redis"
