@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "web",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "web", "run", "dev"],
+      "port": 3000
+    },
+    {
+      "name": "backend-lite",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "set DATABASE_URL=sqlite+aiosqlite:///./steam4caster-dev.db&& set KV_BACKEND=memory&& set TASKS_DISABLED=true&& set EMAIL_PROVIDER=none&& set PRICE_PROVIDER=fake&& uv run uvicorn app.main:app_factory --factory --port 8000"],
+      "port": 8000
+    }
+  ]
+}
