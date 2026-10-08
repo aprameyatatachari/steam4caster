@@ -256,13 +256,19 @@ class NotificationService:
         """Queue and immediately attempt one test notification per usable channel."""
         from app.services.dispatcher import OutboxDispatcher
 
-        limit = self.settings.rate_limit_test_notification_per_hour
-        if await hit_rate_limit(self.container.kv, "test-notification", str(user.id), 3600) > limit:
-            raise RateLimited("Test notification limit reached. Try again later.")
+        # Check for somewhere to send first: an attempt that cannot send anything must
+        # not use up the hourly allowance.
         channels = await usable_channels(self.session, self.container, user)
         if not channels:
             raise ValidationFailed(
-                "No notification channel is enabled with a verified destination."
+                "There is nowhere to send a test yet. Turn on browser push for this "
+                "browser (or enable another channel) and try again."
+            )
+        limit = self.settings.rate_limit_test_notification_per_hour
+        if await hit_rate_limit(self.container.kv, "test-notification", str(user.id), 3600) > limit:
+            raise RateLimited(
+                f"You can send {limit} test notifications an hour. Try again in a while.",
+                headers={"Retry-After": "3600"},
             )
         event = NotificationEvent(
             user_id=user.id,
