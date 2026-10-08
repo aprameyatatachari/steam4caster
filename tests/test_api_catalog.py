@@ -362,3 +362,28 @@ async def test_currency_change_does_not_mix_currencies_in_a_series(
         assert len(points) == 3  # the ARS era is excluded rather than compared
         events = await prices_repo.list_sale_events(session, game.id, shop.id, "AR")
         assert [e.currency for e in events] == ["USD"]
+
+
+async def test_forecast_is_redone_when_history_arrives_after_it_was_made(
+    container: Container, scripted: ScriptedProvider
+) -> None:
+    """A forecast made while history could not be fetched must not be served for a day
+    once the history does arrive."""
+    from app.services.forecasts import ForecastService
+
+    async with container.db.session() as session:
+        game, shop = await _game_and_shop(container, session)
+        prices = PriceService(session, container)
+        forecasts = ForecastService(session, container)
+        # History is unavailable at first: only the current price is known.
+        await prices.refresh_current([game], shop, "US")
+        thin = await forecasts.generate(game, shop, "US")
+        assert thin.data_quality == "INSUFFICIENT"
+
+        # The backfill succeeds later and brings years of older observations.
+        result = await prices.ingest_history(game, shop, "US")
+        assert result.inserted > 0
+        redone = await forecasts.get_or_generate(game, shop, "US")
+        assert redone.id != thin.id and redone.data_quality == "GOOD"
+        # With nothing new, the same forecast is served again.
+        assert (await forecasts.get_or_generate(game, shop, "US")).id == redone.id

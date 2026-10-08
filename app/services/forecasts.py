@@ -159,9 +159,17 @@ class ForecastService:
             fresh = utcnow() - latest.created_at < timedelta(
                 hours=self.settings.forecast_max_age_hours
             )
-            newest = await prices_repo.latest_observation(self.session, game.id, shop.id, country)
-            unchanged = newest is None or newest.observed_at <= latest.cutoff_at
-            if fresh and unchanged:
+            # A backfill that lands after a forecast was made adds *older* observations,
+            # so compare ingestion time as well as the price-change time.
+            changed = await prices_repo.has_observations_newer_than(
+                self.session,
+                game.id,
+                shop.id,
+                country,
+                observed_after=latest.cutoff_at,
+                ingested_after=latest.created_at,
+            )
+            if fresh and not changed:
                 return latest
         return await self.generate(game, shop, country)
 

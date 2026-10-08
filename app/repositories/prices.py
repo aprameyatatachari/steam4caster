@@ -108,6 +108,31 @@ async def latest_observation(
     return (await session.scalars(stmt)).first()
 
 
+async def has_observations_newer_than(
+    session: AsyncSession,
+    game_id: uuid.UUID,
+    shop_id: int,
+    country: str,
+    *,
+    observed_after: datetime,
+    ingested_after: datetime,
+) -> bool:
+    """True if the series gained data a forecast made at those instants never saw:
+    either a later price change, or older history that was only ingested afterwards."""
+    stmt = (
+        select(PriceObservation.id)
+        .where(
+            _series(PriceObservation, game_id, shop_id, country),
+            or_(
+                PriceObservation.observed_at > observed_after,
+                PriceObservation.ingested_at > ingested_after,
+            ),
+        )
+        .limit(1)
+    )
+    return (await session.execute(stmt)).first() is not None
+
+
 async def series_points(
     session: AsyncSession,
     game_id: uuid.UUID,
