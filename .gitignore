@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+
+# Model artifacts, datasets and local databases
+artifacts/*
+!artifacts/.gitkeep
+*.db
+*.sqlite3
+celerybeat-schedule*
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Design-skill working files
+.impeccable/
