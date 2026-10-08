@@ -1,0 +1,7 @@
+# Keep line endings stable across Windows and Linux (Docker, CI).
+* text=auto eol=lf
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+*.png binary
+*.jpg binary
+*.webp binary
