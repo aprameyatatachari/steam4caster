@@ -34,7 +34,8 @@ services:
 
   redis:
     image: redis:7-alpine
-    ports: ["6379:6379"]
+    # Host port 56379 for the same reason as Postgres: an existing local Redis on 6379.
+    ports: ["56379:6379"]
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s

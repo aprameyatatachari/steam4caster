@@ -36,8 +36,10 @@ class Settings(BaseSettings):
     frontend_base_url: str = "http://localhost:3000"
 
     # --- storage -----------------------------------------------------------
-    database_url: str = "postgresql+asyncpg://steam4caster:steam4caster@localhost:55432/steam4caster"
-    redis_url: str = "redis://localhost:6379/0"
+    database_url: str = (
+        "postgresql+asyncpg://steam4caster:steam4caster@localhost:55432/steam4caster"
+    )
+    redis_url: str = "redis://localhost:56379/0"
     # "redis" in real deployments; "memory" is a per-process stand-in for tests/dev.
     kv_backend: Literal["redis", "memory"] = "redis"
     celery_broker_url: str | None = None
@@ -74,9 +76,6 @@ class Settings(BaseSettings):
     cache_ttl_shops_seconds: int = 24 * 3600
     cache_ttl_prices_seconds: int = 30 * 60
     cache_ttl_history_seconds: int = 3 * 3600
-    # Reference exchange rates, shown only as an indicative cross-region comparison.
-    fx_base_url: str = "https://api.frankfurter.dev/v1"
-    cache_ttl_fx_seconds: int = 12 * 3600
     price_stale_after_seconds: int = 3 * 3600
     history_backfill_start: date = date(2012, 1, 1)
     history_overlap_hours: int = 48
