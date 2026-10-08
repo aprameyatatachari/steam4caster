@@ -71,8 +71,6 @@ export type SaleEvent = {
   max_discount_pct: number;
 };
 
-export type FxRate = { base: string; quote: string; rate: number; as_of: string; source: string; note: string };
-
 export type Horizons = { days_7: number; days_30: number; days_90: number };
 export type Factor = { code: string; direction: "BUY" | "WAIT" | "NEUTRAL"; importance: number; text: string };
 
@@ -426,7 +424,6 @@ export const api = {
     } while (cursor);
     return { items, attribution };
   },
-  fx: (base: string, quote: string) => request<FxRate>("/fx", { query: { base, quote } }),
   saleEvents: (id: string, country?: string) => request<SaleEvent[]>(`/games/${id}/sale-events`, { query: { country } }),
   forecast: (id: string, country?: string) => request<Forecast>(`/games/${id}/forecast`, { query: { country } }),
   recommendation: (id: string, country?: string, maxWaitDays?: number) =>

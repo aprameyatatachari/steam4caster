@@ -32,7 +32,7 @@ It predicts when a game will next be discounted and how deep, with stated confid
 ## Capabilities and Constraints
 
 - Backend API contract: `docs/api.md` and `docs/openapi.json`. Auth is bearer access tokens with rotating refresh tokens; only one refresh may be in flight at a time.
-- Money is always integer minor units plus an ISO currency. Amounts in different currencies are never added or converted, with one owner-requested exception: the game page can show another region's full price history in that region's own currency, with a plain disclaimer and today's reference exchange rate as an indicative comparison. Forecasts, recommendations, alerts and totals never use converted prices.
+- Money is always integer minor units plus an ISO currency. Amounts in different currencies are never added or converted.
 - Only the Steam shop is supported.
 - Forecast fields can be absent: `likely_window` and `predicted_sale_price` are often null; a new watchlist entry may have no forecast for a few seconds.
 - Forecasts come from a deterministic baseline unless a trained model has been activated. The UI must show the method actually used.

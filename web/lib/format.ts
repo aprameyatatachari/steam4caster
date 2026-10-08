@@ -23,15 +23,6 @@ export function minor(amountMinor: number, currency: string, { compact = false }
   }
 }
 
-/**
- * Indicative conversion of minor units between currencies at a given rate (one unit of
- * `from` in `to`). For display beside another region's prices only.
- */
-export function convertMinor(amountMinor: number, from: string, to: string, rate: number): number {
-  const major = amountMinor / 10 ** (EXPONENT[from] ?? 2);
-  return Math.round(major * rate * 10 ** (EXPONENT[to] ?? 2));
-}
-
 export const pct = (value: number, digits = 0) => `${(value * 100).toFixed(digits)}%`;
 
 export function date(value: string | Date | null | undefined, style: "short" | "long" | "month" = "short"): string {

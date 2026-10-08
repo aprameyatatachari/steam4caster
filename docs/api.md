@@ -82,7 +82,6 @@ provider.
 | Current price, discount, historical low | `GET /games/{id}/prices?country=` |
 | Price chart | `GET /games/{id}/history?country=&from=&to=&cursor=&limit=` |
 | Sale bands for the chart | `GET /games/{id}/sale-events?country=` |
-| Reference exchange rate (indicative, for showing another region's history) | `GET /fx?base=USD&quote=INR` |
 | Forecast | `GET /games/{id}/forecast?country=` |
 | Recommendation | `GET /games/{id}/recommendation?country=&max_wait_days=` |
 | Past forecasts and outcomes | `GET /games/{id}/forecast-history?country=&cursor=` |

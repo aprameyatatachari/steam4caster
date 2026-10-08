@@ -6,7 +6,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 
 import { TierChart, Waffle } from "@/components/Charts";
 import { CellType } from "@/components/CellType";
-import { HistoryModule } from "@/components/HistoryModule";
+import { PriceChart } from "@/components/PriceChart";
 import { AttributionNote, Button, ErrorNote, GameArt, Skeleton, steamUrl } from "@/components/ui";
 import {
   api,
@@ -268,15 +268,21 @@ export default function GamePage() {
         </div>
       </div>
 
-      <HistoryModule
-        game={game}
-        country={forecast.country}
-        currency={currency}
-        history={history}
-        sales={sales}
-        forecast={forecast}
-        price={price}
-      />
+      <section className="module" aria-labelledby="history-title">
+        <div className="module-head">
+          <h2 id="history-title" className="h-sm">Price history and the estimated next sale</h2>
+          <span className="data muted">{sales.length} sales on record</span>
+        </div>
+        <div className="module-body">
+          <PriceChart
+            history={history}
+            sales={sales}
+            forecast={forecast}
+            currency={currency}
+            lowMinor={price?.historical_low?.amount_minor ?? null}
+          />
+        </div>
+      </section>
 
       <section className="split" aria-labelledby="forecast-title">
         <div className="stack">

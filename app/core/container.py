@@ -13,7 +13,6 @@ from app.db.session import Database
 from app.forecasting.inference.registry import ModelStore
 from app.forecasting.policy import PolicyConfig
 from app.models.enums import Channel
-from app.providers.fx import FrankfurterFxProvider, FxRateProvider
 from app.providers.notifications.base import FakeNotificationProvider, NotificationProvider
 from app.providers.pricing.base import PriceDataProvider
 from app.providers.pricing.caching import CacheTTLs, CachingPriceProvider
@@ -58,7 +57,6 @@ class Container:
     model_store: ModelStore
     cipher: FieldCipher
     tasks: TaskDispatcher
-    fx: FxRateProvider
     _closed: bool = field(default=False, repr=False)
 
     @property
@@ -79,7 +77,6 @@ class Container:
             return
         self._closed = True
         await self.price_provider.aclose()
-        await self.fx.aclose()
         for provider in self.notifiers.values():
             await provider.aclose()
         await self.kv.close()
@@ -175,6 +172,5 @@ def build_container(settings: Settings, *, pooled: bool = True) -> Container:
             enabled=settings.ml_enabled, pinned_version=settings.active_model_version
         ),
         cipher=FieldCipher(settings.encryption_secret),
-        fx=FrankfurterFxProvider(settings.fx_base_url, user_agent=settings.provider_user_agent),
         tasks=RecordingDispatcher() if settings.tasks_disabled else CeleryDispatcher(),
     )

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 
 import type { Forecast, HistoryPoint, SaleEvent } from "@/lib/api";
-import { convertMinor, date, dayMonth, daysBetween, minor } from "@/lib/format";
+import { date, dayMonth, daysBetween, minor } from "@/lib/format";
 import { EASE, gsap, prefersReducedMotion, useGSAP } from "@/lib/motion";
 
 const DAY = 86_400_000;
@@ -26,8 +26,6 @@ type Props = {
   /** Draw-on progress 0..1 controlled from outside (scroll scenes). Omit to self-animate. */
   revealRef?: React.RefObject<{ value: number } | null>;
   initialRange?: string;
-  /** Show an indicative conversion in the readout: one unit of `currency` props in this one. */
-  approx?: { rate: number; currency: string };
 };
 
 function niceTicks(max: number, count = 4): number[] {
@@ -53,7 +51,6 @@ export function PriceChart({
   height = 380,
   revealRef,
   initialRange = "all",
-  approx,
 }: Props) {
   const uid = useId().replace(/:/g, "");
   const boxRef = useRef<HTMLDivElement>(null);
@@ -424,11 +421,6 @@ export function PriceChart({
             <span className="data">
               {active.cut > 0 ? `${active.cut}% off ${minor(active.regular, currency)}` : "Regular price"}
             </span>
-            {approx ? (
-              <span className="data" style={{ display: "block" }}>
-                ≈ {minor(convertMinor(active.price, currency, approx.currency, approx.rate), approx.currency, { compact: true })} at today&rsquo;s rate
-              </span>
-            ) : null}
           </div>
         ) : null}
         {onForecast ? (
