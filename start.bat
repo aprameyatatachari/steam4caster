@@ -2,10 +2,10 @@
 rem ============================================================================
 rem  Steam4Caster - start the backend and the website with one double-click.
 rem
-rem  Full mode (Docker Desktop running):
+rem  Full mode (Docker Desktop installed; it is started for you if it is not running):
 rem      PostgreSQL + Redis + Mailpit in Docker, then the API, a Celery worker
 rem      and the Celery scheduler, each in its own window.
-rem  Lite mode (Docker not running):
+rem  Lite mode (Docker missing or it fails to start; or set S4C_NO_DOCKER=1):
 rem      One API process on a local SQLite file with an in-memory cache. It
 rem      also runs the background jobs itself: price refresh, forecasts, alerts
 rem      and browser push. No email (there is no local mail server).
@@ -61,9 +61,25 @@ if /i "%PRICE_PROVIDER%"=="fake" (
 
 set "MODE=full"
 docker info >nul 2>&1
-if errorlevel 1 set "MODE=lite"
+if not errorlevel 1 goto :full
+if defined S4C_NO_DOCKER goto :lite
 
-if "%MODE%"=="full" goto :full
+rem Docker is installed but not running: start it and wait for the engine.
+set "DOCKER_EXE=%ProgramFiles%\Docker\Docker\Docker Desktop.exe"
+if not exist "%DOCKER_EXE%" goto :lite
+echo [3/5] Starting Docker Desktop ^(this can take a minute or two^)...
+start "" "%DOCKER_EXE%"
+set /a DTRIES=0
+:dockerwait
+docker info >nul 2>&1
+if not errorlevel 1 goto :full
+set /a DTRIES+=1
+if %DTRIES% geq 60 goto :dockerfailed
+ping -n 3 127.0.0.1 >nul
+goto :dockerwait
+
+:dockerfailed
+echo [WARN] Docker Desktop did not become ready in time. Continuing in lite mode.
 goto :lite
 
 :full
@@ -77,7 +93,8 @@ if errorlevel 1 (
 goto :migrate
 
 :lite
-echo [3/5] Docker is not running: LITE MODE (SQLite, background jobs run inside the API).
+set "MODE=lite"
+echo [3/5] Docker is not available: LITE MODE (SQLite, background jobs run inside the API).
 set "DATABASE_URL=sqlite+aiosqlite:///./steam4caster-dev.db"
 set "KV_BACKEND=memory"
 set "INLINE_JOBS=true"
