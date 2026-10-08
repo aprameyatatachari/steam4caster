@@ -14,6 +14,14 @@ All run from the same image. On Windows the worker needs `--pool=solo`.
 Workers acknowledge tasks after completion and every task is idempotent, so a crashed
 worker's task is simply run again. API and workers shut down gracefully on `SIGTERM`.
 
+### Single-process mode
+
+With `INLINE_JOBS=true` the API process runs the background jobs itself and no worker or
+scheduler is needed: on start-up it brings every watched game up to date and evaluates
+its alerts, then delivers notifications every minute and refreshes prices on the usual
+interval. `start.bat` uses this when Docker is not running. It is meant for one process
+on one machine; use the worker and scheduler for anything larger.
+
 ## Schedules
 
 | Task | Default | Does |

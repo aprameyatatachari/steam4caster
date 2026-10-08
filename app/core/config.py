@@ -44,6 +44,9 @@ class Settings(BaseSettings):
     celery_result_backend: str | None = None
     # When true, enqueue requests are dropped (used by tests and one-off scripts).
     tasks_disabled: bool = False
+    # Run the background jobs inside the API process (single-process deployments with
+    # no Celery worker). Takes precedence over the Celery dispatcher.
+    inline_jobs: bool = False
 
     # --- auth --------------------------------------------------------------
     jwt_secret_key: SecretStr = SecretStr(INSECURE_DEV_SECRET)

@@ -6,8 +6,9 @@ rem  Full mode (Docker Desktop running):
 rem      PostgreSQL + Redis + Mailpit in Docker, then the API, a Celery worker
 rem      and the Celery scheduler, each in its own window.
 rem  Lite mode (Docker not running):
-rem      The API only, on a local SQLite file with an in-memory cache. No
-rem      background jobs, alerts or email; forecasts are generated on request.
+rem      One API process on a local SQLite file with an in-memory cache. It
+rem      also runs the background jobs itself: price refresh, forecasts, alerts
+rem      and browser push. No email (there is no local mail server).
 rem
 rem  The website (Next.js, in web\) starts in both modes when Node.js is installed.
 rem
@@ -76,10 +77,10 @@ if errorlevel 1 (
 goto :migrate
 
 :lite
-echo [3/5] Docker is not running: LITE MODE (SQLite, API only, no background jobs).
+echo [3/5] Docker is not running: LITE MODE (SQLite, background jobs run inside the API).
 set "DATABASE_URL=sqlite+aiosqlite:///./steam4caster-dev.db"
 set "KV_BACKEND=memory"
-set "TASKS_DISABLED=true"
+set "INLINE_JOBS=true"
 set "EMAIL_PROVIDER=none"
 
 :migrate

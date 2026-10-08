@@ -52,11 +52,20 @@ def create_app(settings: Settings | None = None, container: Container | None = N
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         owned = container is None
         app.state.container = container or build_container(settings)
+        runner = None
+        if settings.inline_jobs:
+            from app.tasks.inline import InlineRunner
+
+            runner = InlineRunner(app.state.container)
+            app.state.container.tasks = runner
+            runner.start()
         logger.info("application started", extra={"env": settings.app_env})
         try:
             yield
         finally:
             # Graceful shutdown: in-flight requests have finished by the time this runs.
+            if runner is not None:
+                await runner.stop()
             if owned:
                 await app.state.container.aclose()
             logger.info("application stopped")
