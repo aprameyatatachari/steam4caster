@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 
+import { SalesPanel } from "@/components/SalesPanel";
 import { Button, ErrorNote, GameArt, Skeleton, Slash } from "@/components/ui";
 import { api, errorMessage, type Game, type WatchlistSummary } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -142,6 +143,8 @@ export default function SearchPage() {
           </ul>
         </section>
       ) : null}
+
+      {!results ? <SalesPanel /> : null}
 
       {!results && likely.length > 0 ? (
         <section aria-labelledby="likely-title">

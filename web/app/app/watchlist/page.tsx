@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 
 import { Button, ButtonLink, ErrorNote, GameArt, Skeleton, steamUrl } from "@/components/ui";
+import { WishlistImport } from "@/components/WishlistImport";
 import { api, errorMessage, type WatchlistEntry, type WatchlistSummary } from "@/lib/api";
 import { dayMonth, fromMinor, money, pct, toMinor } from "@/lib/format";
 import { EASE, gsap, prefersReducedMotion, useGSAP } from "@/lib/motion";
@@ -57,6 +58,7 @@ export default function WatchlistPage() {
           <p className="body">Search for a game you are thinking of buying and add it. You will get a forecast, a call, and an alert when the price hits your target.</p>
           <ButtonLink href="/app" variant="hi">Find a game</ButtonLink>
         </div>
+        <WishlistImport onImported={load} />
       </main>
     );
   }
@@ -167,6 +169,8 @@ export default function WatchlistPage() {
           ),
         )}
       </ul>
+
+      <WishlistImport onImported={load} />
     </main>
   );
 }

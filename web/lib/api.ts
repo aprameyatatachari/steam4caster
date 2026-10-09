@@ -187,6 +187,17 @@ export type WatchlistSummary = {
   disclaimer: string;
 };
 
+export type WishlistImport = {
+  steam_id: string;
+  on_wishlist: number;
+  added: number;
+  added_titles: string[];
+  already_watching: number;
+  not_found: number;
+  failed: number;
+  skipped_over_limit: number;
+};
+
 export type Preference = {
   channel: Channel;
   enabled: boolean;
@@ -444,6 +455,8 @@ export const api = {
   }) => request<WatchlistEntry>("/watchlist", { method: "POST", body }),
   updateEntry: (id: string, body: Record<string, unknown>) =>
     request<WatchlistEntry>(`/watchlist/${id}`, { method: "PATCH", body }),
+  importSteamWishlist: (profile: string) =>
+    request<WishlistImport>("/watchlist/import/steam", { method: "POST", body: { profile } }),
   removeEntry: (id: string) => request<null>(`/watchlist/${id}`, { method: "DELETE" }),
 
   preferences: () => request<Preferences>("/notification-preferences"),
