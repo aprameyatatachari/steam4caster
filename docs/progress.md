@@ -25,6 +25,23 @@ PostgreSQL 16 and the full suite passes against it (181 passed, none skipped), r
 `TEST_DATABASE_URL` pointing at a separate test database. The first bullet below is
 therefore resolved; the image build, Redis and a real Celery broker are still unverified.
 
+### Update: first model trained on real data (2026-10-09)
+
+History for 233 popular games was backfilled (US from 2012, India from December 2024):
+52,016 training rows over 442 series. Candidate `lgbm-20261009135352` against the
+baseline on held-out, later-in-time data:
+
+| Horizon | Brier (model / baseline) | ROC-AUC (model / baseline) | Calibration error (model / baseline) |
+| --- | --- | --- | --- |
+| 7 days | 0.097 / 0.111 | 0.82 / 0.74 | 0.018 / 0.039 |
+| 30 days | 0.167 / 0.186 | 0.84 / 0.79 | 0.056 / 0.060 |
+| 90 days | 0.075 / 0.102 | 0.90 / 0.83 | 0.073 / 0.048 |
+
+It beat the baseline for both US and India at every horizon. It failed two promotion
+gates and was not activated: 90-day calibration (it is under-confident at the top end,
+saying about 85% where sales happened 95% of the time), and discount depth (MAE 7.0
+points against 6.7; the baseline's per-game history is the better depth predictor).
+
 ### Not verified
 
 These could not be run on the development machine because Docker Desktop failed to start

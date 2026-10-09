@@ -121,7 +121,7 @@ class ModelService:
         await self.session.commit()
         logger.info(
             "trained candidate model",
-            extra={"model_version": version, "gates_passed": result.gates_passed},
+            extra={"model_version": version, "promotion_ok": result.gates_passed},
         )
         return row
 
