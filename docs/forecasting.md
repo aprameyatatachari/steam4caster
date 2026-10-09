@@ -33,10 +33,15 @@ Review scores and popularity are deliberately not used: they would need a docume
 permitted source. Cross-store prices are not used either.
 
 **Seasonal windows** (`app/forecasting/calendar.py`) are date rules fitted to the
-historical pattern: Spring (from 2023), Summer (last Thursday of June, two weeks), Autumn
-(Thanksgiving week through 2024, late September from 2025), Winter (third Thursday of
-December, two weeks). Valve publishes no schedule and has moved sales before, so these
-are estimates used as features and hints only.
+yearly pattern. From 2026 on they follow Steam's usual schedule: Spring (one week from
+the third Thursday of March), Summer (two weeks from the last Thursday of June), Autumn
+(one week from the first Thursday of October) and Winter (from the third Thursday of
+December into early January). Earlier years keep the dates that actually happened
+(Autumn was Thanksgiving week through 2024 and late September in 2025), since those are
+matched against real price history. Valve publishes no schedule and has moved sales
+before, so these are estimates used as features and hints only. Steam Next Fest weeks
+are also estimated for display, but they are demo events, not sales, and never count as
+a sale signal.
 
 ## Baseline (deterministic)
 
