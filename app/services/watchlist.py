@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import uuid
 from dataclasses import dataclass, field
 from typing import Any
@@ -11,14 +12,20 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.container import Container
-from app.core.errors import ConflictError, NotFoundError, ValidationFailed
+from app.core.errors import ConflictError, NotFoundError, UpstreamUnavailable, ValidationFailed
 from app.core.logging import get_logger
 from app.core.money import normalize_country, normalize_currency
 from app.forecasting.policy import probability_within
 from app.models import Forecast, Game, Recommendation, RegionalGamePrice, User, WatchlistEntry
 from app.models.enums import Channel
-from app.providers.pricing.base import ProviderError
+from app.providers.pricing.base import (
+    ProviderError,
+    ProviderGame,
+    ProviderGameInfo,
+)
+from app.providers.steam import SteamProfileNotFound, SteamUnavailable
 from app.repositories import forecasts as forecasts_repo
+from app.repositories import games as games_repo
 from app.repositories import prices as prices_repo
 from app.services.catalog import CatalogService
 from app.services.prices import PriceService
@@ -176,6 +183,115 @@ class WatchlistService:
             raise ConflictError("This game is already on your watchlist.") from exc
         self.container.tasks.enqueue("prices.process_series", str(game.id), region)
         return (await self._view([entry], shop.id))[0]
+
+    async def import_steam_wishlist(self, user: User, reference: str) -> dict[str, Any]:
+        """Add the games on a public Steam wishlist to the user's watchlist.
+
+        Games already watched are left alone, so importing twice is harmless. Prices,
+        forecasts and alerts for the new entries are filled in by the background job.
+        """
+        steam = self.container.steam
+        try:
+            steam_id = await steam.resolve_steam_id(reference)
+            app_ids = await steam.get_wishlist_app_ids(steam_id)
+        except SteamProfileNotFound as exc:
+            raise ValidationFailed(
+                "That does not look like a Steam profile. Paste your profile link, "
+                "for example https://steamcommunity.com/id/yourname."
+            ) from exc
+        except SteamUnavailable as exc:
+            raise UpstreamUnavailable(
+                "Steam is not responding right now. Try again shortly."
+            ) from exc
+        if not app_ids:
+            raise ValidationFailed(
+                "Steam returned no games for that wishlist. It is either empty or private: "
+                "in Steam, open Edit Profile, then Privacy Settings, and set Game details "
+                "to Public."
+            )
+
+        limit = self.container.settings.wishlist_import_max
+        selected = list(dict.fromkeys(app_ids))[:limit]
+        known: dict[int, Game] = {
+            g.steam_app_id: g
+            for g in await self.session.scalars(select(Game).where(Game.steam_app_id.in_(selected)))
+            if g.steam_app_id is not None
+        }
+
+        provider = self.container.price_provider
+        gate = asyncio.Semaphore(5)  # a few lookups at a time, well inside provider limits
+
+        async def resolve(
+            app_id: int,
+        ) -> tuple[int, ProviderGame | None, ProviderGameInfo | None, bool]:
+            async with gate:
+                try:
+                    found = await provider.lookup_game(steam_app_id=app_id)
+                    info = await provider.get_game_info(found.provider_id) if found else None
+                    return app_id, found, info, False
+                except ProviderError:
+                    return app_id, None, None, True
+
+        resolved = await asyncio.gather(*(resolve(a) for a in selected if a not in known))
+        not_found = failed = 0
+        for app_id, found, info, errored in resolved:
+            if found is None:
+                failed += int(errored)
+                not_found += int(not errored)
+                continue
+            (game,) = await games_repo.upsert_provider_games(self.session, [found])
+            if info is not None:
+                await games_repo.apply_info(self.session, game, info)
+            if game.steam_app_id is None:
+                game.steam_app_id = app_id
+            known[app_id] = game
+        await self.session.commit()
+
+        shop = await CatalogService(self.session, self.container).steam_shop()
+        watched = set(
+            await self.session.scalars(
+                select(WatchlistEntry.game_id).where(WatchlistEntry.user_id == user.id)
+            )
+        )
+        prices = await prices_repo.regional_prices_for(
+            self.session, [(g.id, user.default_country) for g in known.values()], shop.id
+        )
+        added: list[Game] = []
+        already = 0
+        for app_id in selected:
+            candidate = known.get(app_id)
+            if candidate is None:
+                continue
+            if candidate.id in watched:
+                already += 1
+                continue
+            regional = prices.get((candidate.id, user.default_country))
+            self.session.add(
+                WatchlistEntry(
+                    user_id=user.id,
+                    game_id=candidate.id,
+                    country=user.default_country,
+                    currency=regional.currency if regional else user.default_currency,
+                    channels=_channels(None),
+                )
+            )
+            watched.add(candidate.id)
+            added.append(candidate)
+        await self.session.commit()
+        for game in added:
+            self.container.tasks.enqueue(
+                "prices.process_series", str(game.id), user.default_country
+            )
+        return {
+            "steam_id": steam_id,
+            "on_wishlist": len(app_ids),
+            "added": len(added),
+            "added_titles": [g.title for g in added[:20]],
+            "already_watching": already,
+            "not_found": not_found,
+            "failed": failed,
+            "skipped_over_limit": max(0, len(dict.fromkeys(app_ids)) - limit),
+        }
 
     async def update(self, user: User, entry_id: uuid.UUID, changes: dict[str, Any]) -> EntryView:
         entry = await self._owned(user, entry_id)

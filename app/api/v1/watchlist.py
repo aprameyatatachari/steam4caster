@@ -2,15 +2,17 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Response, status
+from fastapi import APIRouter, Depends, Response, status
 
-from app.api.deps import ContainerDep, CurrentUser, SessionDep
+from app.api.deps import ContainerDep, CurrentUser, SessionDep, rate_limit_by_user
 from app.schemas.watchlist import (
     LikelySale,
     WatchlistCreate,
     WatchlistEntryOut,
     WatchlistSummary,
     WatchlistUpdate,
+    WishlistImportOut,
+    WishlistImportRequest,
     currency_totals,
     entry_out,
 )
@@ -49,6 +51,24 @@ async def create_entry(
         channels=[c.value for c in body.channels] if body.channels is not None else None,
     )
     return entry_out(view)
+
+
+@router.post(
+    "/import/steam",
+    response_model=WishlistImportOut,
+    dependencies=[
+        Depends(rate_limit_by_user("wishlist-import", "rate_limit_wishlist_import_per_hour", 3600))
+    ],
+    summary="Import a public Steam wishlist",
+    description="Adds the games on a public Steam wishlist to the watchlist, in the "
+    "owner's ranked order, up to the per-import limit. Games already watched are left "
+    "unchanged. Only public Steam data is read; nothing is signed in.",
+)
+async def import_steam_wishlist(
+    body: WishlistImportRequest, user: CurrentUser, session: SessionDep, container: ContainerDep
+) -> WishlistImportOut:
+    result = await WatchlistService(session, container).import_steam_wishlist(user, body.profile)
+    return WishlistImportOut(**result)
 
 
 @router.get(

@@ -16,6 +16,7 @@ from app.models.enums import Channel
 from app.providers.notifications.base import FakeNotificationProvider, NotificationProvider
 from app.providers.pricing.base import PriceDataProvider
 from app.providers.pricing.caching import CacheTTLs, CachingPriceProvider
+from app.providers.steam import SteamCommunityProvider, SteamProfileProvider
 
 logger = get_logger(__name__)
 
@@ -57,6 +58,7 @@ class Container:
     model_store: ModelStore
     cipher: FieldCipher
     tasks: TaskDispatcher
+    steam: SteamProfileProvider
     _closed: bool = field(default=False, repr=False)
 
     @property
@@ -77,6 +79,7 @@ class Container:
             return
         self._closed = True
         await self.price_provider.aclose()
+        await self.steam.aclose()
         for provider in self.notifiers.values():
             await provider.aclose()
         await self.kv.close()
@@ -173,4 +176,5 @@ def build_container(settings: Settings, *, pooled: bool = True) -> Container:
         ),
         cipher=FieldCipher(settings.encryption_secret),
         tasks=RecordingDispatcher() if settings.tasks_disabled else CeleryDispatcher(),
+        steam=SteamCommunityProvider(user_agent=settings.provider_user_agent),
     )

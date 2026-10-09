@@ -130,6 +130,9 @@ class Settings(BaseSettings):
     rate_limit_auth_per_minute: int = 10
     rate_limit_search_per_minute: int = 30
     rate_limit_test_notification_per_hour: int = 3
+    rate_limit_wishlist_import_per_hour: int = 6
+    # Most wishlist games added per import, taken in the owner's ranked order.
+    wishlist_import_max: int = 100
 
     # --- schedules ---------------------------------------------------------
     schedule_price_refresh_minutes: int = 180

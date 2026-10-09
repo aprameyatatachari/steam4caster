@@ -52,6 +52,29 @@ class WatchlistUpdate(ApiModel):
     is_active: bool | None = None
 
 
+class WishlistImportRequest(ApiModel):
+    model_config = ConfigDict(
+        json_schema_extra={"example": {"profile": "https://steamcommunity.com/id/yourname"}}
+    )
+
+    profile: str = Field(
+        min_length=2,
+        max_length=200,
+        description="Steam profile link, custom URL name, or 17-digit Steam ID.",
+    )
+
+
+class WishlistImportOut(ApiModel):
+    steam_id: str
+    on_wishlist: int = Field(description="Games on the Steam wishlist.")
+    added: int
+    added_titles: list[str] = Field(description="Up to 20 of the titles added.")
+    already_watching: int
+    not_found: int = Field(description="Wishlist items the price provider does not know.")
+    failed: int = Field(description="Items skipped because the price provider errored.")
+    skipped_over_limit: int = Field(description="Items beyond the per-import limit.")
+
+
 class EntryPrice(ApiModel):
     price: Money
     regular: Money
