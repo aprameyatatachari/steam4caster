@@ -242,10 +242,15 @@ def train_candidate(
         candidate = binary_report(scored["y"], scored["calibrated"])
         baseline = binary_report(scored["y"], held_out[f"base_p_{horizon}"])
         cohorts: dict[str, Any] = {}
-        for name, mask in (
+        # Series keys end in ":<country>"; each region must hold up on its own, so a
+        # model that only works where history is long cannot pass on the average.
+        countries = held_out["series_key"].str.rsplit(":", n=1).str[-1]
+        cohort_masks = [
             ("sparse_lt_4_sales", held_out["n_sales_total"] < 4),
             ("rich_ge_4_sales", held_out["n_sales_total"] >= 4),
-        ):
+            *((f"country_{code}", countries == code) for code in sorted(countries.unique())),
+        ]
+        for name, mask in cohort_masks:
             if mask.sum():
                 cohorts[name] = {
                     "n": int(mask.sum()),

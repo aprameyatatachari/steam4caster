@@ -157,6 +157,10 @@ class FakePriceProvider:
             url=f"https://example.invalid/fake/game/{g.slug}/",
         )
 
+    async def list_popular_games(self, limit: int = 100, offset: int = 0) -> list[ProviderGame]:
+        self._count("popular")
+        return [self._game(g) for g in _CATALOG][offset : offset + limit]
+
     async def list_shops(self, country: str) -> list[ProviderShop]:
         self._count("shops")
         return list(_SHOPS)

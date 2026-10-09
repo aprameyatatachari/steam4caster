@@ -146,6 +146,15 @@ class CachingPriceProvider:
             lambda: self._inner.get_price_history(provider_id, country, shop_ids, since),
         )
 
+    async def list_popular_games(self, limit: int = 100, offset: int = 0) -> list[ProviderGame]:
+        return await self._cached(
+            "popular",
+            _key("popular", limit, offset),
+            self._ttls.shops,
+            TypeAdapter(list[ProviderGame]),
+            lambda: self._inner.list_popular_games(limit, offset),
+        )
+
     async def list_shops(self, country: str) -> list[ProviderShop]:
         return await self._cached(
             "shops",

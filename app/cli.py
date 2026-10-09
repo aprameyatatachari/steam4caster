@@ -196,6 +196,75 @@ def backfill(
     _print(_run(job))
 
 
+@app.command("backfill-popular")
+def backfill_popular(
+    count: Annotated[
+        int, typer.Option(help="How many of the provider's most popular games.")
+    ] = 300,
+    countries: Annotated[str, typer.Option(help="Comma-separated country codes.")] = "US,IN",
+    pace: Annotated[float, typer.Option(help="Seconds to pause between provider calls.")] = 0.35,
+) -> None:
+    """Backfill history for the provider's most popular games (a training catalogue).
+
+    Resumable: series that already finished a backfill are skipped, so it can be stopped
+    and re-run. It is paced to stay well inside the provider's rate limit.
+    """
+
+    async def job(container: Container) -> dict[str, Any]:
+        from app.providers.pricing.base import ProviderError
+        from app.repositories import games as games_repo
+        from app.repositories import prices as prices_repo
+        from app.services.catalog import CatalogService
+        from app.services.prices import PriceService
+
+        regions = [c.strip().upper() for c in countries.split(",") if c.strip()]
+        provider = container.price_provider
+        listed = []
+        for offset in range(0, count, 500):
+            listed.extend(await provider.list_popular_games(min(500, count - offset), offset))
+            await asyncio.sleep(pace)
+        done = skipped = failed = observations = 0
+        async with container.db.session() as session:
+            catalog = CatalogService(session, container)
+            shop = await catalog.steam_shop()
+            prices = PriceService(session, container)
+            for index, item in enumerate(listed[:count], start=1):
+                try:
+                    (game,) = await games_repo.upsert_provider_games(session, [item])
+                    await session.commit()
+                    if game.info_fetched_at is None:
+                        await catalog.ensure_info(game)
+                        await asyncio.sleep(pace)
+                    for region in regions:
+                        mark = await prices_repo.get_watermark(session, game.id, shop.id, region)
+                        if mark is not None and mark.backfill_completed_at is not None:
+                            skipped += 1
+                            continue
+                        result = await prices.ingest_history(game, shop, region)
+                        observations += result.inserted
+                        done += 1
+                        await asyncio.sleep(pace)
+                except ProviderError as exc:
+                    failed += 1
+                    await session.rollback()
+                    print(f"  {item.title}: {exc.code}", file=sys.stderr)
+                    await asyncio.sleep(5)
+                if index % 25 == 0:
+                    print(
+                        f"  {index}/{len(listed)} games, {observations} observations",
+                        file=sys.stderr,
+                    )
+        return {
+            "games": len(listed),
+            "series_backfilled": done,
+            "series_already_done": skipped,
+            "failed": failed,
+            "observations_added": observations,
+        }
+
+    _print(_run(job))
+
+
 @app.command("build-dataset")
 def build_dataset(
     out: Path = Path("artifacts/dataset.csv"),

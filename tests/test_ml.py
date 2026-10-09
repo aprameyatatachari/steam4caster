@@ -209,7 +209,13 @@ def test_training_compares_candidate_with_baseline(trained: trainer.TrainingResu
         assert block["candidate"]["n"] == block["baseline"]["n"] > 100
         for side in ("candidate", "baseline"):
             assert 0 <= block[side]["brier"] <= 1 and block[side]["ece"] >= 0
-        assert set(block["cohorts"]) <= {"sparse_lt_4_sales", "rich_ge_4_sales"}
+        assert set(block["cohorts"]) <= {
+            "sparse_lt_4_sales",
+            "rich_ge_4_sales",
+            "country_US",
+            "country_IN",
+        }
+        assert "country_IN" in block["cohorts"]  # each region is judged on its own
     assert metrics["tier"]["candidate"]["n"] == metrics["tier"]["baseline"]["n"] > 0
     assert metrics["policy"]["candidate"]["overall"]["n"] > 0
     assert isinstance(trained.gates_passed, bool)

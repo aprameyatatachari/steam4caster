@@ -279,6 +279,16 @@ class IsThereAnyDealProvider:
 
         return self._parse("history", parse, payload)
 
+    async def list_popular_games(self, limit: int = 100, offset: int = 0) -> list[ProviderGame]:
+        """The provider's most popular games, used to pick a training catalogue."""
+        payload = await self._request(
+            "popular",
+            "GET",
+            "/stats/most-popular/v1",
+            params={"limit": min(limit, 500), "offset": offset},
+        )
+        return self._parse("popular", lambda p: [_game({**g, "assets": {}}) for g in p], payload)
+
     async def list_shops(self, country: str) -> list[ProviderShop]:
         payload = await self._request(
             "shops", "GET", "/service/shops/v1", params={"country": country}
