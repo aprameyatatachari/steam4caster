@@ -130,6 +130,7 @@ applied.
 | Edit preferences | `PATCH /watchlist/{entry_id}` |
 | Remove | `DELETE /watchlist/{entry_id}` |
 | Portfolio summary | `GET /watchlist/summary` |
+| Import a public Steam wishlist | `POST /watchlist/import/steam` with `{ "profile": "<link, custom URL name or Steam ID>" }` |
 
 Each entry embeds the game, the current regional price, a forecast summary and the
 recommendation. `current`, `forecast` and `recommendation` can be null for a few seconds

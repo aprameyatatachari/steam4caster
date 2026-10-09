@@ -196,8 +196,8 @@ class WatchlistService:
             app_ids = await steam.get_wishlist_app_ids(steam_id)
         except SteamProfileNotFound as exc:
             raise ValidationFailed(
-                "That does not look like a Steam profile. Paste your profile link, "
-                "for example https://steamcommunity.com/id/yourname."
+                "No Steam profile was found for that. Paste your profile link, for "
+                "example https://steamcommunity.com/id/yourname, or your 17-digit Steam ID."
             ) from exc
         except SteamUnavailable as exc:
             raise UpstreamUnavailable(
