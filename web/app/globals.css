@@ -1566,11 +1566,11 @@ a.row:focus-visible::before {
   }
 }
 
-.try-form {
+.try-more {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
   gap: 0.75rem;
-  align-items: end;
+  justify-items: start;
+  padding-top: 0.5rem;
 }
 
 .try-result {
@@ -1582,7 +1582,8 @@ a.row:focus-visible::before {
 }
 
 button.row:hover::before,
-button.row:focus-visible::before {
+button.row:focus-visible::before,
+button.row[aria-pressed="true"]::before {
   transform: scaleX(1);
 }
 

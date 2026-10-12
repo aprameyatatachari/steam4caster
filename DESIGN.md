@@ -89,9 +89,10 @@ The landing page runs on real data from the public endpoints, not a mock-up.
   scrolling row of popular Steam games on a deep sale now: art, cut in a highlighter
   tag, regular price struck through, sale price, and the end date when the provider
   gives one ("End date not given" otherwise). Picking one loads it into the demo.
-- **Try it** (`DemoPicker`): search any Steam game and choose a region. The pinned
+- **Try it** (`DemoPicker`): the ten deals as a pick list, plus a region. The pinned
   price chart, the hundred-cell forecast, the call and the alert tester all redraw from
-  that game's real history.
+  the picked deal's real history. There is no search here on purpose: looking up any
+  other game is what an account is for, and the section says so with one action.
 - **Wait picker** (`.seg`): one segmented control (1 week to 3 months) shared by the
   forecast and the call. The selected segment is a highlighter plane.
 - **Alert tester** (`AlertTester`): a target-price slider checked against the game's

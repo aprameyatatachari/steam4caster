@@ -204,10 +204,11 @@ IN, US, GB, DE, FR, BR, CA, AU, JP. Another region returns `422` with the list.
 
 | Call | Purpose |
 | --- | --- |
-| `GET /api/v1/public/deals?country=IN&limit=12` | "Best deals of the week": the most popular full games on Steam discounted by at least `BEST_DEALS_MIN_DISCOUNT_PCT` (default 50). Each item has `game`, `regular`, `price`, `discount_pct`, `url` and `expires_at` (null when the provider does not know the end date) |
-| `GET /api/v1/public/search?q=` | Title search, up to 10 results |
-| `GET /api/v1/public/games/{id}/snapshot?country=IN&max_wait_days=30` | One game in one response: `game`, `price` (null if Steam has none in the region), full `history`, `sale_events`, `forecast` and `recommendation`. `max_wait_days` must be 7, 14, 30, 60 or 90 |
+| `GET /api/v1/public/deals?country=IN` | "Best deals of the week": the ten most popular full games on Steam discounted by at least `BEST_DEALS_MIN_DISCOUNT_PCT` (default 50). Each item has `game`, `regular`, `price`, `discount_pct`, `url` and `expires_at` (null when the provider does not know the end date). If the provider is failing, the last good list (kept for 24 hours, ended sales removed) is served |
+| `GET /api/v1/public/games/{id}/snapshot?country=IN&max_wait_days=30` | One listed deal in one response: `game`, `price`, full `history`, `sale_events`, `forecast` and `recommendation`. `max_wait_days` must be 7, 14, 30, 60 or 90. **Only games currently on the deals list for that region are served; any other game is `404`.** Looking up arbitrary games needs an account |
 | `GET /api/v1/public/calibration?horizon_days=30` | Reliability bins for scored forecasts; `n` is 0 and `bins` empty until forecasts mature |
+
+There is deliberately no public search.
 
 The landing page falls back to clearly labelled illustrative data only while these are
 loading or unreachable.

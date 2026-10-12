@@ -162,8 +162,13 @@ export function Landing() {
       .then((result) => {
         if (!live) return;
         setDeals({ status: "ready", items: result.items, minDiscount: result.min_discount_pct, attribution: result.attribution });
-        // The page opens on the most popular game currently on sale.
-        if (!pickedRef.current && result.items.length) setPicked(result.items[0].game);
+        // The demo only covers this week's deals: open on the first, and move there
+        // if the game being shown is not on this region's list.
+        const current = pickedRef.current;
+        if (!current || !result.items.some((d) => d.game.id === current.id)) {
+            setPicked(result.items[0]?.game ?? null);
+            setSnapshot(null);
+        }
       })
       .catch((err) => live && setDeals({ status: "error", message: errorMessage(err) }));
     return () => {
@@ -347,12 +352,12 @@ export function Landing() {
             {history.length > 1 ? (
               <PriceChart history={history} sales={sales} forecast={forecast} currency={currency} lowMinor={lowMinor} revealRef={reveal} height={400} initialRange="2y" />
             ) : (
-              <p className="notice">Steam has no price history for {subject} in {region}. Pick another game or region below.</p>
+              <p className="notice">Steam has no price history for {subject} in {region}. Pick another deal or region below.</p>
             )}
             <p className="data muted" style={{ marginTop: "0.25rem" }}>
               {real ? (
                 <>
-                  Real Steam price history for {subject} in {region}. <a className="link" href="#try">Pick another game</a>
+                  Real Steam price history for {subject} in {region}. <a className="link" href="#try">Pick another deal</a>
                 </>
               ) : (
                 "Illustrative data for a made-up game while real prices load."
@@ -362,18 +367,20 @@ export function Landing() {
         </section>
 
         <section id="try" className="scene wrap" style={{ borderTop: "1px solid var(--ink)" }}>
-          <h2 className="display h-xl" data-in style={{ maxWidth: "14ch" }}>Try it on a real game.</h2>
+          <h2 className="display h-xl" data-in style={{ maxWidth: "16ch" }}>Try it on this week&rsquo;s deals.</h2>
           <p className="lede" style={{ marginBlock: "1rem calc(var(--cell) * 1.5)" }}>
-            Search any Steam game, no account needed. The price chart above and everything below redraw from its real history in your region.
+            Pick one of the ten. The price chart above and everything below redraw from its real history in your region. An account lets you look up any Steam game.
           </p>
           <DemoPicker
+            deals={deals.status === "ready" ? deals.items : []}
             snapshot={snapshot}
             picked={picked}
-            loading={snapBusy}
+            loading={snapBusy || deals.status === "loading"}
             error={snapError}
             country={country}
             onCountry={chooseCountry}
             onPick={setPicked}
+            startHref={startHref}
           />
         </section>
 

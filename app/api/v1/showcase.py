@@ -13,7 +13,6 @@ from app.core.errors import ValidationFailed
 from app.forecasting.types import HORIZONS
 from app.providers.pricing.base import ATTRIBUTION
 from app.schemas.catalog import (
-    GameOut,
     forecast_out,
     game_out,
     history_point,
@@ -24,9 +23,8 @@ from app.schemas.catalog import (
 from app.schemas.common import Attribution, CountryCode, money
 from app.schemas.performance import CalibrationOut
 from app.schemas.showcase import DealOut, DealsOut, SnapshotOut
-from app.services.catalog import CatalogService
 from app.services.performance import PerformanceService
-from app.services.showcase import ShowcaseService
+from app.services.showcase import SHOWCASE_SIZE, ShowcaseService
 
 router = APIRouter(
     prefix="/public",
@@ -54,7 +52,7 @@ def _country(value: str) -> str:
 @router.get(
     "/deals",
     response_model=DealsOut,
-    summary="Notable Steam sales running right now",
+    summary="The ten notable Steam sales running right now",
     description="Full games on Steam discounted by at least the configured cut, most "
     "popular first. Prices are the region's own. `expires_at` is null when the "
     "provider does not know when the sale ends.",
@@ -63,10 +61,9 @@ async def best_deals(
     session: SessionDep,
     container: ContainerDep,
     country: ShowcaseCountry = "IN",
-    limit: Annotated[int, Query(ge=1, le=24)] = 10,
 ) -> DealsOut:
     region = _country(country)
-    deals = await ShowcaseService(session, container).best_deals(region, limit)
+    deals = await ShowcaseService(session, container).best_deals(region, SHOWCASE_SIZE)
     items = []
     for game, deal in deals:
         price = money(deal.price.amount_minor, deal.price.currency)
@@ -91,21 +88,12 @@ async def best_deals(
     )
 
 
-@router.get("/search", response_model=list[GameOut], summary="Search games by title")
-async def public_search(
-    session: SessionDep,
-    container: ContainerDep,
-    q: Annotated[str, Query(min_length=2, max_length=100)],
-    limit: Annotated[int, Query(ge=1, le=10)] = 8,
-) -> list[GameOut]:
-    return [game_out(g) for g in await CatalogService(session, container).search(q, limit)]
-
-
 @router.get(
     "/games/{game_id}/snapshot",
     response_model=SnapshotOut,
-    summary="Price history, forecast and recommendation for one game",
-    description="The same data the signed-in app shows for a game, in one response. "
+    summary="Price history, forecast and recommendation for one listed deal",
+    description="Only games currently returned by `/public/deals` for the region can be "
+    "read; any other game is `404`. "
     "Forecasts and recommendations are estimates, not guarantees or financial advice.",
 )
 async def snapshot(

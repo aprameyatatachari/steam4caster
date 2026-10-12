@@ -4148,7 +4148,7 @@
         "tags": [
           "public"
         ],
-        "summary": "Notable Steam sales running right now",
+        "summary": "The ten notable Steam sales running right now",
         "description": "Full games on Steam discounted by at least the configured cut, most popular first. Prices are the region's own. `expires_at` is null when the provider does not know when the sale ends.",
         "operationId": "best_deals_api_v1_public_deals_get",
         "parameters": [
@@ -4164,18 +4164,6 @@
               "title": "Country"
             },
             "description": "One of IN, US, GB, DE, FR, BR, CA, AU, JP."
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "maximum": 24,
-              "minimum": 1,
-              "default": 10,
-              "title": "Limit"
-            }
           }
         ],
         "responses": {
@@ -4252,123 +4240,13 @@
         }
       }
     },
-    "/api/v1/public/search": {
-      "get": {
-        "tags": [
-          "public"
-        ],
-        "summary": "Search games by title",
-        "operationId": "public_search_api_v1_public_search_get",
-        "parameters": [
-          {
-            "name": "q",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "minLength": 2,
-              "maxLength": 100,
-              "title": "Q"
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "maximum": 10,
-              "minimum": 1,
-              "default": 8,
-              "title": "Limit"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/GameOut"
-                  },
-                  "title": "Response Public Search Api V1 Public Search Get"
-                }
-              }
-            }
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Unauthorized"
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Found"
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Conflict"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Unprocessable Entity"
-          },
-          "429": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Too Many Requests"
-          },
-          "503": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Service Unavailable"
-          }
-        }
-      }
-    },
     "/api/v1/public/games/{game_id}/snapshot": {
       "get": {
         "tags": [
           "public"
         ],
-        "summary": "Price history, forecast and recommendation for one game",
-        "description": "The same data the signed-in app shows for a game, in one response. Forecasts and recommendations are estimates, not guarantees or financial advice.",
+        "summary": "Price history, forecast and recommendation for one listed deal",
+        "description": "Only games currently returned by `/public/deals` for the region can be read; any other game is `404`. Forecasts and recommendations are estimates, not guarantees or financial advice.",
         "operationId": "snapshot_api_v1_public_games__game_id__snapshot_get",
         "parameters": [
           {

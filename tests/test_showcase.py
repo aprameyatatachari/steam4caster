@@ -11,6 +11,7 @@ from app.providers.pricing.base import (
     ProviderDeal,
     ProviderGame,
     ProviderListedDeal,
+    ProviderRateLimited,
 )
 from tests.helpers import GAME_ID, STEAM, ScriptedProvider, price_points, regular_sales, to_history
 
@@ -78,9 +79,10 @@ async def test_snapshot_returns_history_forecast_and_call_without_an_account(
     )
     container.price_provider = provider
 
-    found = await client.get("/api/v1/public/search", params={"q": "scripted"})
-    assert found.status_code == 200, found.text
-    game = found.json()[0]
+    # Only a game on this week's list can be opened without an account.
+    provider.deals = [listed(GAME_ID, "Scripted Quest", 50)]
+    deals = await client.get("/api/v1/public/deals", params={"country": "IN"})
+    game = deals.json()["items"][0]["game"]
     assert game["itad_id"] == GAME_ID
 
     response = await client.get(
@@ -101,6 +103,30 @@ async def test_snapshot_returns_history_forecast_and_call_without_an_account(
     assert bad.status_code == 422
 
 
+async def test_snapshot_refuses_games_that_are_not_listed_deals(
+    client: httpx.AsyncClient, container: Container, auth: dict[str, str]
+) -> None:
+    # A real game in the catalogue, found through the signed-in search...
+    found = await client.get("/api/v1/games/search", params={"q": "Hollow"}, headers=auth)
+    game = found.json()[0]
+    # ...is still closed to the public demo unless it is one of this week's deals.
+    provider = ScriptedProvider()
+    provider.deals = [listed("a", "Alpha", 75)]
+    container.price_provider = provider
+    response = await client.get(f"/api/v1/public/games/{game['id']}/snapshot")
+    assert response.status_code == 404
+    assert "account" in response.json()["error"]["message"]
+    assert (await client.get("/api/v1/public/search", params={"q": "ho"})).status_code == 404
+
+
+async def test_deals_list_is_capped_at_ten(client: httpx.AsyncClient, container: Container) -> None:
+    provider = ScriptedProvider()
+    provider.deals = [listed(f"g{i}", f"Game {i}", 60) for i in range(14)]
+    container.price_provider = provider
+    body = (await client.get("/api/v1/public/deals")).json()
+    assert len(body["items"]) == 10
+
+
 async def test_public_calibration_is_empty_before_any_forecast_is_scored(
     client: httpx.AsyncClient,
 ) -> None:
@@ -115,3 +141,33 @@ async def test_public_routes_are_rate_limited_per_ip(
     container.settings.rate_limit_public_per_minute = 2
     codes = [(await client.get("/api/v1/public/calibration")).status_code for _ in range(3)]
     assert codes == [200, 200, 429]
+
+
+async def test_deals_fall_back_to_the_last_good_list_when_the_provider_fails(
+    client: httpx.AsyncClient, container: Container
+) -> None:
+    provider = ScriptedProvider()
+    provider.deals = [
+        listed("a", "Alpha", 75),
+        listed("b", "Ended", 60, expiry=datetime(2020, 1, 1, tzinfo=UTC)),
+    ]
+    container.price_provider = provider
+    first = await client.get("/api/v1/public/deals")
+    assert [d["game"]["title"] for d in first.json()["items"]] == ["Alpha", "Ended"]
+
+    provider.failures = [ProviderRateLimited(600)]
+    again = await client.get("/api/v1/public/deals")
+    assert again.status_code == 200
+    # The stored list is served, without the sale that has already ended.
+    assert [d["game"]["title"] for d in again.json()["items"]] == ["Alpha"]
+
+
+async def test_deals_report_the_outage_when_there_is_no_earlier_list(
+    client: httpx.AsyncClient, container: Container
+) -> None:
+    provider = ScriptedProvider()
+    container.price_provider = provider
+    await client.get("/api/v1/public/calibration")  # resolves nothing from the provider
+    provider.failures = [ProviderRateLimited(600), ProviderRateLimited(600)]
+    response = await client.get("/api/v1/public/deals", params={"country": "US"})
+    assert response.status_code == 503

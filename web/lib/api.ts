@@ -495,8 +495,7 @@ export const api = {
   notifications: (cursor?: string | null) =>
     request<{ items: NotificationItem[]; next_cursor: string | null }>("/notifications", { query: { cursor, limit: 30 } }),
 
-  publicDeals: (country: string) => request<Deals>("/public/deals", { query: { country, limit: 12 }, auth: false }),
-  publicSearch: (q: string) => request<Game[]>("/public/search", { query: { q }, auth: false }),
+  publicDeals: (country: string) => request<Deals>("/public/deals", { query: { country }, auth: false }),
   snapshot: (id: string, country: string, maxWaitDays: number) =>
     request<Snapshot>(`/public/games/${id}/snapshot`, { query: { country, max_wait_days: maxWaitDays }, auth: false }),
   publicCalibration: () => request<Calibration>("/public/calibration", { query: { horizon_days: 30 }, auth: false }),

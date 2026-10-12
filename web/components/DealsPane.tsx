@@ -89,7 +89,7 @@ export function DealsPane({
 
       {state.status === "ready" && count === 0 ? (
         <p className="notice deals-note">
-          No popular Steam game is {state.minDiscount}% off or more in {region} right now. Search for any game below to see when its next sale is likely.
+          No popular Steam game is {state.minDiscount}% off or more in {region} right now. Try another region, or create an account to forecast any game.
         </p>
       ) : null}
 
