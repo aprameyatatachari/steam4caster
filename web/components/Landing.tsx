@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { CalibrationChart, TierChart, Waffle } from "@/components/Charts";
 import { CellType } from "@/components/CellType";
 import { HeroMorph } from "@/components/HeroMorph";
+import { Intro, resetIntro } from "@/components/Intro";
 import { PriceChart } from "@/components/PriceChart";
 import { AttributionNote, ButtonLink, Wordmark } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
@@ -103,6 +104,30 @@ export function Landing() {
   const [wait, setWait] = useState(30);
   const chance = probabilityWithin(forecast.new_sale_probability, wait);
   const startHref = user ? "/app" : "/register";
+  // The intro sheet covers the page first: "open" while it is up, "entered" once it lifts.
+  const [gate, setGate] = useState<"pending" | "open" | "entered">("pending");
+  const [introRun, setIntroRun] = useState(0);
+  const entered = gate === "entered";
+
+  const replayIntro = () => {
+    resetIntro();
+    window.scrollTo({ top: 0, behavior: "instant" });
+    setGate("pending");
+    setIntroRun((n) => n + 1);
+  };
+
+  // The hero copy rises as the sheet leaves, not underneath it.
+  useGSAP(
+    () => {
+      if (prefersReducedMotion()) return;
+      if (!entered) {
+        gsap.set("[data-rise]", { y: 28, opacity: 0 });
+        return;
+      }
+      gsap.to("[data-rise]", { y: 0, opacity: 1, duration: 1.1, ease: EASE, stagger: 0.09, delay: 0.55 });
+    },
+    { scope: root, dependencies: [entered] },
+  );
 
   useGSAP(
     () => {
@@ -110,7 +135,6 @@ export function Landing() {
         reveal.current.value = 1;
         return;
       }
-      gsap.from("[data-rise]", { y: 28, opacity: 0, duration: 1.1, ease: EASE, stagger: 0.09, delay: 0.75 });
 
       // Scene: the price log draws itself as you scroll, one beat of copy per third.
       const beats = gsap.utils.toArray<HTMLElement>(".beat");
@@ -140,7 +164,14 @@ export function Landing() {
   );
 
   return (
-    <div ref={root}>
+    <>
+    <Intro
+      key={introRun}
+      onOpen={() => setGate("open")}
+      onEnter={() => setGate("entered")}
+      onDone={() => ScrollTrigger.refresh()}
+    />
+    <div ref={root} inert={gate === "open"}>
       <HeroMorph history={history} reveal={reveal} />
       <header className="nav">
         <Wordmark />
@@ -165,8 +196,8 @@ export function Landing() {
       <main>
         <section className="hero wrap" aria-labelledby="hero-title">
           <HighlighterField />
-          <CellType as="h1" className="hero-type" lines={["BUY NOW", "OR WAIT?"]} fills={[undefined, "var(--pen)"]} />
-          <CellType as="div" className="hero-type-narrow" lines={["BUY", "NOW", "OR", "WAIT?"]} fills={[undefined, undefined, undefined, "var(--pen)"]} />
+          <CellType as="h1" className="hero-type" lines={["BUY NOW", "OR WAIT?"]} fills={[undefined, "var(--pen)"]} build={entered ? "mount" : "none"} />
+          <CellType as="div" className="hero-type-narrow" lines={["BUY", "NOW", "OR", "WAIT?"]} fills={[undefined, undefined, undefined, "var(--pen)"]} build={entered ? "mount" : "none"} />
           <span id="hero-title" className="sr-only">Buy now or wait?</span>
           <div className="hero-foot">
             <div>
@@ -301,8 +332,10 @@ export function Landing() {
           <Link className="link" href="/login">Sign in</Link>
           <Link className="link" href="/register">Create account</Link>
           <a className="link" href="#steps">How it works</a>
+          <button type="button" className="link link-button" onClick={replayIntro}>Replay intro</button>
         </nav>
       </footer>
     </div>
+    </>
   );
 }

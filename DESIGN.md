@@ -109,6 +109,18 @@ GSAP with ScrollTrigger (`web/lib/motion.ts`). House ease is `expo.out`; wipes u
   The real chart's draw-on sweep then replaces the cells column by column. It is drawn
   on one fixed canvas, scrubbed by scroll and fully reversible. Keep it the only effect
   of this size on the page.
+- **Front sheet (`Intro`, `Terrain`)**: the landing opens under a full-screen sheet,
+  shown once per browser session (the footer's "Replay intro" brings it back). Its
+  ground is the page grid extruded in WebGL: bands of columns are made-up price
+  histories sliding past, drawn in an oblique projection so tops stay square on the
+  grid and height runs up the house diagonal. Tops are paper ruled in ink, fronts pen,
+  sides ink. The pointer presses a sale into the columns (they drop, tops highlight)
+  and a press sends a ripple. The skyline building left to right is the loading bar,
+  beside a 100-cell waffle. When ready, a highlighter band rises as the handle: drag or
+  swipe the sheet up (it follows the finger and springs back if let go early), scroll,
+  or press Enter. The columns sink flat as it lifts and the hero assembles beneath.
+  It is labelled as decoration, never as price data. Skipped under reduced motion;
+  without WebGL only the highlighter marks are drawn.
 - The landing's price scene is pinned and scrubbed: the price log draws left to right
   while three copy beats swap.
 - Section headlines wipe in with a clip-path; waffles and tier columns fill when they

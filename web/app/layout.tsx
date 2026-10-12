@@ -40,7 +40,7 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={`${archivo.variable} ${martian.variable}`}>
+    <html lang="en" suppressHydrationWarning className={`${archivo.variable} ${martian.variable}`}>
       <body>
         <div hidden dangerouslySetInnerHTML={{ __html: CONTRACT }} />
         <AuthProvider>
