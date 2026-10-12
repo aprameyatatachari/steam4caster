@@ -198,6 +198,29 @@ export type WishlistImport = {
   skipped_over_limit: number;
 };
 
+/** A sale running now, from the public landing-page endpoints. */
+export type Deal = {
+  game: Game;
+  price: Money;
+  regular: Money;
+  discount_pct: number;
+  expires_at: string | null;
+  url: string | null;
+};
+export type Deals = { country: string; min_discount_pct: number; items: Deal[]; attribution: Attribution };
+
+/** Everything the landing page shows about one game, readable without an account. */
+export type Snapshot = {
+  game: Game;
+  country: string;
+  price: Price | null;
+  history: HistoryPoint[];
+  sale_events: SaleEvent[];
+  forecast: Forecast;
+  recommendation: Recommendation;
+  attribution: Attribution;
+};
+
 export type Preference = {
   channel: Channel;
   enabled: boolean;
@@ -471,6 +494,12 @@ export const api = {
     }),
   notifications: (cursor?: string | null) =>
     request<{ items: NotificationItem[]; next_cursor: string | null }>("/notifications", { query: { cursor, limit: 30 } }),
+
+  publicDeals: (country: string) => request<Deals>("/public/deals", { query: { country, limit: 12 }, auth: false }),
+  publicSearch: (q: string) => request<Game[]>("/public/search", { query: { q }, auth: false }),
+  snapshot: (id: string, country: string, maxWaitDays: number) =>
+    request<Snapshot>(`/public/games/${id}/snapshot`, { query: { country, max_wait_days: maxWaitDays }, auth: false }),
+  publicCalibration: () => request<Calibration>("/public/calibration", { query: { horizon_days: 30 }, auth: false }),
 
   performanceSummary: () => request<PerformanceSummary>("/model-performance/summary"),
   calibration: (horizonDays: number) =>

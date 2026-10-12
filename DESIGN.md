@@ -81,6 +81,24 @@ Rules:
 | `.verdict` | The call. Background encodes the state: yellow (BUY), hatch (WAIT), plain (NEUTRAL) |
 | `.empty`, `.skeleton`, `.error`, `.notice`, `.banner` | States |
 
+## Landing page data
+
+The landing page runs on real data from the public endpoints, not a mock-up.
+
+- **Deals pane** (`DealsPane`): first thing under the nav. A ruled, horizontally
+  scrolling row of popular Steam games on a deep sale now: art, cut in a highlighter
+  tag, regular price struck through, sale price, and the end date when the provider
+  gives one ("End date not given" otherwise). Picking one loads it into the demo.
+- **Try it** (`DemoPicker`): search any Steam game and choose a region. The pinned
+  price chart, the hundred-cell forecast, the call and the alert tester all redraw from
+  that game's real history.
+- **Wait picker** (`.seg`): one segmented control (1 week to 3 months) shared by the
+  forecast and the call. The selected segment is a highlighter plane.
+- **Alert tester** (`AlertTester`): a target-price slider checked against the game's
+  real past sales, with whether it would fire today.
+- Illustrative data appears only while real data loads or the server is unreachable,
+  and is labelled when it does.
+
 ## Charts
 
 All charts are drawn from cells or on the grid, and are interactive by pointer and

@@ -131,6 +131,9 @@ class Settings(BaseSettings):
     rate_limit_search_per_minute: int = 30
     rate_limit_test_notification_per_hour: int = 3
     rate_limit_wishlist_import_per_hour: int = 6
+    # Unauthenticated landing-page endpoints, per client IP.
+    rate_limit_public_per_minute: int = 60
+    best_deals_min_discount_pct: int = 50
     # Most wishlist games added per import, taken in the owner's ranked order.
     wishlist_import_max: int = 100
 

@@ -14,6 +14,7 @@ from app.providers.pricing.base import (
     ProviderGameInfo,
     ProviderGamePrices,
     ProviderHistoryPoint,
+    ProviderListedDeal,
     ProviderShop,
 )
 
@@ -73,6 +74,7 @@ class ScriptedProvider:
         self.series: dict[str, list[ProviderHistoryPoint]] = {}
         self.failures: list[ProviderError] = []
         self.calls: dict[str, int] = {}
+        self.deals: list[ProviderListedDeal] = []
 
     def _enter(self, operation: str) -> None:
         self.calls[operation] = self.calls.get(operation, 0) + 1
@@ -110,6 +112,12 @@ class ScriptedProvider:
             tags=["RPG"],
             url="https://example.invalid/game/scripted-quest/?affiliate=keep-me",
         )
+
+    async def list_deals(
+        self, country: str, shop_ids: Sequence[int], limit: int = 100
+    ) -> list[ProviderListedDeal]:
+        self._enter("deals")
+        return list(self.deals)
 
     async def list_shops(self, country: str) -> list[ProviderShop]:
         self._enter("shops")

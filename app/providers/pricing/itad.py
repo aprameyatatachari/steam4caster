@@ -2,7 +2,8 @@
 
 Shapes follow the live OpenAPI document (https://docs.isthereanydeal.com/openapi.json):
 ``GET /games/search/v1``, ``GET /games/lookup/v1``, ``GET /games/info/v2``,
-``POST /games/prices/v3``, ``GET /games/history/v2`` and ``GET /service/shops/v1``.
+``POST /games/prices/v3``, ``GET /games/history/v2``, ``GET /deals/v2`` and
+``GET /service/shops/v1``.
 Provider prices and URLs are passed through unaltered.
 """
 
@@ -31,6 +32,7 @@ from app.providers.pricing.base import (
     ProviderGameInfo,
     ProviderGamePrices,
     ProviderHistoryPoint,
+    ProviderListedDeal,
     ProviderRateLimited,
     ProviderShop,
     ProviderUnavailable,
@@ -53,6 +55,20 @@ def _game(raw: dict[str, Any]) -> ProviderGame:
         type=raw.get("type"),
         mature=bool(raw.get("mature", False)),
         assets={k: str(v) for k, v in (raw.get("assets") or {}).items() if v},
+    )
+
+
+def _deal(raw: dict[str, Any]) -> ProviderDeal:
+    return ProviderDeal(
+        shop_id=int(raw["shop"]["id"]),
+        shop_name=str(raw["shop"]["name"]),
+        price=_money(raw["price"]),
+        regular=_money(raw["regular"]),
+        cut=int(raw["cut"]),
+        store_low=_money(raw["storeLow"]) if raw.get("storeLow") else None,
+        timestamp=raw["timestamp"],
+        expiry=raw.get("expiry"),
+        url=raw.get("url"),
     )
 
 
@@ -228,20 +244,7 @@ class IsThereAnyDealProvider:
                 return [
                     ProviderGamePrices(
                         provider_id=str(item["id"]),
-                        deals=[
-                            ProviderDeal(
-                                shop_id=int(d["shop"]["id"]),
-                                shop_name=str(d["shop"]["name"]),
-                                price=_money(d["price"]),
-                                regular=_money(d["regular"]),
-                                cut=int(d["cut"]),
-                                store_low=_money(d["storeLow"]) if d.get("storeLow") else None,
-                                timestamp=d["timestamp"],
-                                expiry=d.get("expiry"),
-                                url=d.get("url"),
-                            )
-                            for d in item.get("deals") or []
-                        ],
+                        deals=[_deal(d) for d in item.get("deals") or []],
                     )
                     for item in p
                 ]
@@ -288,6 +291,24 @@ class IsThereAnyDealProvider:
             params={"limit": min(limit, 500), "offset": offset},
         )
         return self._parse("popular", lambda p: [_game({**g, "assets": {}}) for g in p], payload)
+
+    async def list_deals(
+        self, country: str, shop_ids: Sequence[int], limit: int = 100
+    ) -> list[ProviderListedDeal]:
+        """Current deals, most popular games first (the provider's ``rank`` ordering)."""
+        params: dict[str, Any] = {"country": country, "limit": min(limit, 200), "sort": "rank"}
+        if shop_ids:
+            params["shops"] = ",".join(str(s) for s in shop_ids)
+        payload = await self._request("deals", "GET", "/deals/v2", params=params)
+
+        def parse(p: dict[str, Any]) -> list[ProviderListedDeal]:
+            return [
+                ProviderListedDeal(game=_game(item), deal=_deal(item["deal"]))
+                for item in p["list"]
+                if item.get("deal")
+            ]
+
+        return self._parse("deals", parse, payload)
 
     async def list_shops(self, country: str) -> list[ProviderShop]:
         payload = await self._request(

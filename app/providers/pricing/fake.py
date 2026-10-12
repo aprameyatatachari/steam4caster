@@ -21,6 +21,7 @@ from app.providers.pricing.base import (
     ProviderGameInfo,
     ProviderGamePrices,
     ProviderHistoryPoint,
+    ProviderListedDeal,
     ProviderShop,
 )
 
@@ -160,6 +161,20 @@ class FakePriceProvider:
     async def list_popular_games(self, limit: int = 100, offset: int = 0) -> list[ProviderGame]:
         self._count("popular")
         return [self._game(g) for g in _CATALOG][offset : offset + limit]
+
+    async def list_deals(
+        self, country: str, shop_ids: Sequence[int], limit: int = 100
+    ) -> list[ProviderListedDeal]:
+        """Every catalogue game discounted right now, deepest cut first."""
+        self._count("deals")
+        priced = await self.get_current_prices([g.provider_id for g in _CATALOG], country, shop_ids)
+        listed = [
+            ProviderListedDeal(game=self._game(self._by_id[p.provider_id]), deal=p.deals[0])
+            for p in priced
+            if p.deals and p.deals[0].cut > 0
+        ]
+        self.calls["prices"] -= 1
+        return sorted(listed, key=lambda d: -d.deal.cut)[:limit]
 
     async def list_shops(self, country: str) -> list[ProviderShop]:
         self._count("shops")

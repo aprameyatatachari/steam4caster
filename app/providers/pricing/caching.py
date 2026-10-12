@@ -22,6 +22,7 @@ from app.providers.pricing.base import (
     ProviderGameInfo,
     ProviderGamePrices,
     ProviderHistoryPoint,
+    ProviderListedDeal,
     ProviderShop,
 )
 
@@ -153,6 +154,17 @@ class CachingPriceProvider:
             self._ttls.shops,
             TypeAdapter(list[ProviderGame]),
             lambda: self._inner.list_popular_games(limit, offset),
+        )
+
+    async def list_deals(
+        self, country: str, shop_ids: Sequence[int], limit: int = 100
+    ) -> list[ProviderListedDeal]:
+        return await self._cached(
+            "deals",
+            _key("deals", country, sorted(shop_ids), limit),
+            self._ttls.prices,
+            TypeAdapter(list[ProviderListedDeal]),
+            lambda: self._inner.list_deals(country, shop_ids, limit),
         )
 
     async def list_shops(self, country: str) -> list[ProviderShop]:

@@ -95,6 +95,13 @@ class ProviderGamePrices(BaseModel):
     deals: list[ProviderDeal] = Field(default_factory=list)
 
 
+class ProviderListedDeal(BaseModel):
+    """One entry of the provider's current deals list: a game and its live deal."""
+
+    game: ProviderGame
+    deal: ProviderDeal
+
+
 class ProviderHistoryPoint(BaseModel):
     timestamp: datetime
     shop_id: int
@@ -125,5 +132,9 @@ class PriceDataProvider(Protocol):
     async def list_shops(self, country: str) -> list[ProviderShop]: ...
 
     async def list_popular_games(self, limit: int = 100, offset: int = 0) -> list[ProviderGame]: ...
+
+    async def list_deals(
+        self, country: str, shop_ids: Sequence[int], limit: int = 100
+    ) -> list[ProviderListedDeal]: ...
 
     async def aclose(self) -> None: ...

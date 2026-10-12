@@ -2298,6 +2298,103 @@
         ]
       }
     },
+    "/api/v1/watchlist/import/steam": {
+      "post": {
+        "tags": [
+          "watchlist"
+        ],
+        "summary": "Import a public Steam wishlist",
+        "description": "Adds the games on a public Steam wishlist to the watchlist, in the owner's ranked order, up to the per-import limit. Games already watched are left unchanged. Only public Steam data is read; nothing is signed in.",
+        "operationId": "import_steam_wishlist_api_v1_watchlist_import_steam_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WishlistImportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WishlistImportOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/watchlist/summary": {
       "get": {
         "tags": [
@@ -4045,6 +4142,440 @@
           }
         }
       }
+    },
+    "/api/v1/public/deals": {
+      "get": {
+        "tags": [
+          "public"
+        ],
+        "summary": "Notable Steam sales running right now",
+        "description": "Full games on Steam discounted by at least the configured cut, most popular first. Prices are the region's own. `expires_at` is null when the provider does not know when the sale ends.",
+        "operationId": "best_deals_api_v1_public_deals_get",
+        "parameters": [
+          {
+            "name": "country",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z]{2}$",
+              "description": "One of IN, US, GB, DE, FR, BR, CA, AU, JP.",
+              "default": "IN",
+              "title": "Country"
+            },
+            "description": "One of IN, US, GB, DE, FR, BR, CA, AU, JP."
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 24,
+              "minimum": 1,
+              "default": 10,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DealsOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/public/search": {
+      "get": {
+        "tags": [
+          "public"
+        ],
+        "summary": "Search games by title",
+        "operationId": "public_search_api_v1_public_search_get",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 100,
+              "title": "Q"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 10,
+              "minimum": 1,
+              "default": 8,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GameOut"
+                  },
+                  "title": "Response Public Search Api V1 Public Search Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/public/games/{game_id}/snapshot": {
+      "get": {
+        "tags": [
+          "public"
+        ],
+        "summary": "Price history, forecast and recommendation for one game",
+        "description": "The same data the signed-in app shows for a game, in one response. Forecasts and recommendations are estimates, not guarantees or financial advice.",
+        "operationId": "snapshot_api_v1_public_games__game_id__snapshot_get",
+        "parameters": [
+          {
+            "name": "game_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Game Id"
+            }
+          },
+          {
+            "name": "country",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z]{2}$",
+              "description": "One of IN, US, GB, DE, FR, BR, CA, AU, JP.",
+              "default": "IN",
+              "title": "Country"
+            },
+            "description": "One of IN, US, GB, DE, FR, BR, CA, AU, JP."
+          },
+          {
+            "name": "max_wait_days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "description": "One of 7, 14, 30, 60, 90.",
+              "default": 30,
+              "title": "Max Wait Days"
+            },
+            "description": "One of 7, 14, 30, 60, 90."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SnapshotOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/public/calibration": {
+      "get": {
+        "tags": [
+          "public"
+        ],
+        "summary": "Reliability of past forecasts: predicted probability vs what happened",
+        "description": "Empty until forecasts are old enough to be scored.",
+        "operationId": "public_calibration_api_v1_public_calibration_get",
+        "parameters": [
+          {
+            "name": "horizon_days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "description": "One of 7, 30 or 90.",
+              "default": 30,
+              "title": "Horizon Days"
+            },
+            "description": "One of 7, 30 or 90."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalibrationOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -4286,6 +4817,89 @@
           "expected"
         ],
         "title": "CurrencyTotals"
+      },
+      "DealOut": {
+        "properties": {
+          "game": {
+            "$ref": "#/components/schemas/GameOut"
+          },
+          "price": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "regular": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "discount_pct": {
+            "type": "integer",
+            "title": "Discount Pct"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At",
+            "description": "When the provider expects the sale to end. Often unknown."
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url",
+            "description": "Provider URL, passed through unmodified."
+          }
+        },
+        "type": "object",
+        "required": [
+          "game",
+          "price",
+          "regular",
+          "discount_pct",
+          "expires_at",
+          "url"
+        ],
+        "title": "DealOut"
+      },
+      "DealsOut": {
+        "properties": {
+          "country": {
+            "type": "string",
+            "title": "Country"
+          },
+          "min_discount_pct": {
+            "type": "integer",
+            "title": "Min Discount Pct",
+            "description": "Every listed deal is at least this deep."
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/DealOut"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "attribution": {
+            "$ref": "#/components/schemas/Attribution"
+          }
+        },
+        "type": "object",
+        "required": [
+          "country",
+          "min_discount_pct",
+          "items",
+          "attribution"
+        ],
+        "title": "DealsOut"
       },
       "DeliveryMode": {
         "type": "string",
@@ -6666,6 +7280,69 @@
         ],
         "title": "SmsVerifyRequest"
       },
+      "SnapshotOut": {
+        "properties": {
+          "game": {
+            "$ref": "#/components/schemas/GameOut"
+          },
+          "country": {
+            "type": "string",
+            "title": "Country"
+          },
+          "price": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PriceOut"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Null when Steam has no price in this region."
+          },
+          "history": {
+            "items": {
+              "$ref": "#/components/schemas/HistoryPoint"
+            },
+            "type": "array",
+            "title": "History"
+          },
+          "sale_events": {
+            "items": {
+              "$ref": "#/components/schemas/SaleEventOut"
+            },
+            "type": "array",
+            "title": "Sale Events"
+          },
+          "forecast": {
+            "$ref": "#/components/schemas/ForecastOut"
+          },
+          "recommendation": {
+            "$ref": "#/components/schemas/RecommendationOut"
+          },
+          "attribution": {
+            "$ref": "#/components/schemas/Attribution"
+          },
+          "disclaimer": {
+            "type": "string",
+            "title": "Disclaimer",
+            "default": "Forecasts and recommendations are statistical estimates based on past prices. They are not guarantees and not financial advice."
+          }
+        },
+        "type": "object",
+        "required": [
+          "game",
+          "country",
+          "price",
+          "history",
+          "sale_events",
+          "forecast",
+          "recommendation",
+          "attribution"
+        ],
+        "title": "SnapshotOut",
+        "description": "Everything the landing page needs to demonstrate one game, in one response."
+      },
       "TestNotificationOut": {
         "properties": {
           "results": {
@@ -7197,6 +7874,81 @@
         },
         "type": "object",
         "title": "WatchlistUpdate"
+      },
+      "WishlistImportOut": {
+        "properties": {
+          "steam_id": {
+            "type": "string",
+            "title": "Steam Id"
+          },
+          "on_wishlist": {
+            "type": "integer",
+            "title": "On Wishlist",
+            "description": "Games on the Steam wishlist."
+          },
+          "added": {
+            "type": "integer",
+            "title": "Added"
+          },
+          "added_titles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Added Titles",
+            "description": "Up to 20 of the titles added."
+          },
+          "already_watching": {
+            "type": "integer",
+            "title": "Already Watching"
+          },
+          "not_found": {
+            "type": "integer",
+            "title": "Not Found",
+            "description": "Wishlist items the price provider does not know."
+          },
+          "failed": {
+            "type": "integer",
+            "title": "Failed",
+            "description": "Items skipped because the price provider errored."
+          },
+          "skipped_over_limit": {
+            "type": "integer",
+            "title": "Skipped Over Limit",
+            "description": "Items beyond the per-import limit."
+          }
+        },
+        "type": "object",
+        "required": [
+          "steam_id",
+          "on_wishlist",
+          "added",
+          "added_titles",
+          "already_watching",
+          "not_found",
+          "failed",
+          "skipped_over_limit"
+        ],
+        "title": "WishlistImportOut"
+      },
+      "WishlistImportRequest": {
+        "properties": {
+          "profile": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 2,
+            "title": "Profile",
+            "description": "Steam profile link, custom URL name, or 17-digit Steam ID."
+          }
+        },
+        "type": "object",
+        "required": [
+          "profile"
+        ],
+        "title": "WishlistImportRequest",
+        "example": {
+          "profile": "https://steamcommunity.com/id/yourname"
+        }
       }
     },
     "securitySchemes": {

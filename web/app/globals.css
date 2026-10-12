@@ -620,7 +620,7 @@ svg {
   position: relative;
   min-height: calc(100svh - 4rem);
   display: grid;
-  align-content: center;
+  align-content: start;
   padding-block: calc(var(--cell) * 2) calc(var(--cell) * 3);
   overflow: hidden;
 }
@@ -930,7 +930,8 @@ svg {
 }
 
 .seg button:hover {
-  background: var(--paper-2);
+  background: var(--hi);
+  color: #0c0e14;
 }
 
 .seg button[aria-pressed="true"] {
@@ -1370,6 +1371,281 @@ a.row:focus-visible::before {
   font-size: 0.8125rem;
   color: var(--ink-3);
   max-width: 80ch;
+}
+
+/* --- Landing: live deals pane and the try-it demo ------------------------- */
+
+.deals {
+  border-bottom: 1px solid var(--ink);
+  background: var(--paper);
+}
+
+.deals-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+  padding-block: 1rem 0.875rem;
+}
+
+.deals-head .data {
+  margin-top: 0.375rem;
+}
+
+.deals-tools {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+}
+
+.deals-region .select {
+  min-height: 2.25rem;
+  width: auto;
+}
+
+.deals-step {
+  cursor: pointer;
+}
+
+.deals-step:hover:not(:disabled) {
+  background: var(--hi);
+}
+
+.deals-step:disabled {
+  color: var(--ink-3);
+  border-color: var(--ink-3);
+  cursor: default;
+}
+
+.deals-back {
+  display: inline-flex;
+  transform: scaleX(-1);
+}
+
+.deals-track {
+  display: flex;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: var(--gutter);
+  padding-inline: var(--gutter);
+  border-top: 1px solid var(--ink);
+  scrollbar-width: thin;
+  scrollbar-color: var(--ink) transparent;
+}
+
+.deals-track > li {
+  flex: none;
+  width: clamp(12.5rem, calc(var(--cell) * 8), 16rem);
+  border-right: 1px solid var(--ink);
+  scroll-snap-align: start;
+}
+
+.deals-track > li:first-child {
+  border-left: 1px solid var(--ink);
+}
+
+.deal {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  align-content: start;
+  gap: 0.375rem;
+  width: 100%;
+  height: 100%;
+  padding: 0.75rem;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.deal::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--hi);
+  transform: scaleY(0);
+  transform-origin: bottom;
+  transition: transform 0.45s var(--ease-inout);
+}
+
+.deal:hover::before,
+.deal:focus-visible::before,
+.deal[aria-pressed="true"]::before {
+  transform: scaleY(1);
+}
+
+.deal:focus-visible {
+  outline-offset: -4px;
+}
+
+.deal-art {
+  position: relative;
+  display: block;
+}
+
+.deal-cut {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 0.125rem 0.4rem;
+  border: 1px solid var(--ink);
+  background: var(--hi);
+  font-size: 1.0625rem;
+  line-height: 1.2;
+}
+
+.deal-title {
+  font-size: 0.9375rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 2.3em;
+}
+
+.deal-prices {
+  display: flex;
+  align-items: baseline;
+  gap: 0.625rem;
+}
+
+.deal-was {
+  color: var(--ink-2);
+  font-size: 0.875rem;
+  text-decoration-thickness: 1px;
+}
+
+.deal-now {
+  font-size: 1.5rem;
+  line-height: 1.1;
+}
+
+.deal-go {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin-top: 0.25rem;
+}
+
+.deal-go .slash {
+  width: 0.625rem;
+  height: 0.625rem;
+}
+
+.deals-note {
+  margin: 0 var(--gutter) 1rem;
+}
+
+.deals-foot {
+  padding-block: 0.5rem;
+  border-top: 1px solid var(--ink);
+}
+
+.try-grid,
+.call-live {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: calc(var(--cell) * 1.5);
+  align-items: start;
+}
+
+.call-live {
+  margin-top: calc(var(--cell) * 2);
+}
+
+@container sheet (min-width: 1000px) {
+  .try-grid {
+    grid-template-columns: minmax(0, 22fr) minmax(0, 20fr);
+  }
+  .call-live {
+    grid-template-columns: minmax(0, 24fr) minmax(0, 18fr);
+  }
+}
+
+.try-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.try-result {
+  width: 100%;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+button.row:hover::before,
+button.row:focus-visible::before {
+  transform: scaleX(1);
+}
+
+.try-card {
+  transition: opacity 0.3s var(--ease-out);
+}
+
+.try-card[data-loading] {
+  opacity: 0.55;
+}
+
+.seg {
+  display: flex;
+  border: 1px solid var(--ink);
+  background: var(--paper);
+  width: 100%;
+  max-width: 24rem;
+}
+
+.seg button {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 2.5rem;
+  padding: 0 0.25rem;
+  border: 0;
+  box-shadow: 1px 0 0 var(--ink), 0 1px 0 var(--ink);
+  background: none;
+  color: var(--ink);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.seg button:hover {
+  background: var(--hi);
+  color: #0c0e14;
+}
+
+.seg button[aria-checked="true"] {
+  background: var(--hi);
+  color: #0c0e14;
+}
+
+.seg button:focus-visible {
+  outline-offset: -3px;
+}
+
+.alert-test {
+  display: grid;
+  gap: 1rem;
+  padding: 1.25rem;
+  border: 1px solid var(--ink);
+  background: var(--paper);
+}
+
+.call-working > li {
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: start;
+  padding: 0.625rem 0;
 }
 
 /* --- Intro: the front sheet ---------------------------------------------- */

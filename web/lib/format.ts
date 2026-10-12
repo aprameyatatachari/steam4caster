@@ -117,6 +117,27 @@ export const COUNTRIES: { code: string; name: string }[] = [
   { code: "KR", name: "South Korea" },
 ];
 
+/** Regions and wait lengths the public demo accepts (mirrors the backend's lists). */
+const DEMO_CODES = ["IN", "US", "GB", "DE", "FR", "BR", "CA", "AU", "JP"];
+export const DEMO_COUNTRIES = DEMO_CODES.map((code) => COUNTRIES.find((c) => c.code === code)!);
+export const DEMO_WAITS: { days: number; label: string; name: string }[] = [
+  { days: 7, name: "1 week", label: "1 wk" },
+  { days: 14, name: "2 weeks", label: "2 wks" },
+  { days: 30, name: "1 month", label: "1 mo" },
+  { days: 60, name: "2 months", label: "2 mos" },
+  { days: 90, name: "3 months", label: "3 mos" },
+];
+
+/** "Ends 15 Oct · 3 days left", or null when the end date is unknown or already past. */
+export function endsIn(value: string | null | undefined, now = new Date()): string | null {
+  if (!value) return null;
+  const end = new Date(value);
+  const hours = (end.getTime() - now.getTime()) / 3_600_000;
+  if (!(hours > 0)) return null;
+  const left = hours < 24 ? "ends today" : hours < 48 ? "1 day left" : `${Math.floor(hours / 24)} days left`;
+  return `Ends ${dayMonth(end)} · ${left}`;
+}
+
 /** Parse a typed amount in major units ("749" or "749.50") into integer minor units. */
 export function toMinor(input: string, currency: string): number | null {
   const value = Number(input.replace(/,/g, "").trim());
