@@ -1,6 +1,7 @@
-# The backend Vercel project bundles the repository root into one Python function.
-# Everything here is excluded from that bundle (the website is its own Vercel project
-# rooted at web/, and the scheduler lives on Cloudflare).
+# Excluded from Vercel uploads. Git-triggered builds apply this file to BOTH projects
+# (backend at the repository root, website with Root Directory "web"), so it must
+# never ignore web/: the website build would lose its own sources. The website's few
+# megabytes of source in the backend bundle are harmless.
 .venv
 .git
 .github
@@ -17,7 +18,6 @@ __pycache__
 .env.*
 !.env.example
 artifacts
-web
 cron
 tests
 docs
