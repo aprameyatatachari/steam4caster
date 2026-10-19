@@ -24,6 +24,9 @@ class KeyValueStore(Protocol):
     async def incr(self, key: str, ttl: int) -> int: ...
     async def set_nx(self, key: str, value: str, ttl: int) -> bool: ...
     async def delete_if_equals(self, key: str, value: str) -> bool: ...
+    async def push(self, key: str, value: str) -> None: ...
+    async def pop(self, key: str) -> str | None: ...
+    async def length(self, key: str) -> int: ...
     async def ping(self) -> bool: ...
     async def close(self) -> None: ...
 
@@ -31,6 +34,7 @@ class KeyValueStore(Protocol):
 class MemoryKV:
     def __init__(self) -> None:
         self._data: dict[str, tuple[str, float | None]] = {}
+        self._lists: dict[str, list[str]] = {}
 
     def _live(self, key: str) -> str | None:
         item = self._data.get(key)
@@ -71,6 +75,16 @@ class MemoryKV:
             self._data.pop(key, None)
             return True
         return False
+
+    async def push(self, key: str, value: str) -> None:
+        self._lists.setdefault(key, []).append(value)
+
+    async def pop(self, key: str) -> str | None:
+        items = self._lists.get(key)
+        return items.pop(0) if items else None
+
+    async def length(self, key: str) -> int:
+        return len(self._lists.get(key, []))
 
     async def ping(self) -> bool:
         return True
@@ -114,6 +128,16 @@ class RedisKV:
 
     async def delete_if_equals(self, key: str, value: str) -> bool:
         return bool(await self._redis.eval(_RELEASE_SCRIPT, 1, key, value))
+
+    async def push(self, key: str, value: str) -> None:
+        await self._redis.rpush(key, value)
+
+    async def pop(self, key: str) -> str | None:
+        value = await self._redis.lpop(key)
+        return None if value is None else str(value)
+
+    async def length(self, key: str) -> int:
+        return int(await self._redis.llen(key))
 
     async def ping(self) -> bool:
         try:
@@ -173,6 +197,25 @@ class ResilientKV:
             return await self._inner.delete_if_equals(key, value)
         except Exception:
             return False
+
+    async def push(self, key: str, value: str) -> None:
+        try:
+            await self._inner.push(key, value)
+        except Exception:
+            logger.warning("kv push failed", extra={"kv_key_prefix": key.split(":")[0]})
+
+    async def pop(self, key: str) -> str | None:
+        try:
+            return await self._inner.pop(key)
+        except Exception:
+            logger.warning("kv pop failed", extra={"kv_key_prefix": key.split(":")[0]})
+            return None
+
+    async def length(self, key: str) -> int:
+        try:
+            return await self._inner.length(key)
+        except Exception:
+            return 0
 
     async def ping(self) -> bool:
         try:

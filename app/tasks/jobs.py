@@ -8,6 +8,7 @@ idempotent and safe under at-least-once execution.
 from __future__ import annotations
 
 import random
+import time
 import uuid
 from collections import defaultdict
 from datetime import timedelta
@@ -135,8 +136,12 @@ async def generate_daily_forecasts(container: Container) -> dict[str, Any]:
     return {"queued": len(series)}
 
 
-async def reconcile_metadata(container: Container, limit: int = 200) -> dict[str, Any]:
-    """Refresh stale game metadata (stable data, so this runs daily or less often)."""
+async def reconcile_metadata(
+    container: Container, limit: int = 200, deadline: float | None = None
+) -> dict[str, Any]:
+    """Refresh stale game metadata (stable data, so this runs daily or less often).
+    Stops early at ``deadline`` (a ``time.monotonic()`` value); the rest is picked up
+    on the next run because the stalest games always come first."""
     cutoff = utcnow() - timedelta(days=container.settings.metadata_refresh_days)
     async with container.db.session() as session:
         catalog = CatalogService(session, container)
@@ -154,6 +159,8 @@ async def reconcile_metadata(container: Container, limit: int = 200) -> dict[str
         )
         refreshed = 0
         for game in games:
+            if deadline is not None and time.monotonic() > deadline:
+                break
             before = game.info_fetched_at
             await catalog.ensure_info(game, force=True)
             refreshed += int(game.info_fetched_at != before)

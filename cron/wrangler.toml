@@ -1,0 +1,17 @@
+name = "steam4caster-scheduler"
+main = "src/index.js"
+compatibility_date = "2025-09-01"
+workers_dev = false
+
+# Every 10 minutes. Price refresh, backfill and daily jobs are claimed by the backend
+# only when due; this just decides how quickly queued work and alerts move. A gap of
+# 10 minutes also lets the free Neon database sleep between runs.
+[triggers]
+crons = ["*/10 * * * *"]
+
+[vars]
+# The backend's Vercel address. Replace before deploying.
+API_URL = "https://steam4caster-api.vercel.app"
+
+[observability]
+enabled = true

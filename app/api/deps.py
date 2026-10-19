@@ -56,6 +56,14 @@ CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
 def client_ip(request: Request) -> str:
+    """The visitor's address. Behind a trusted proxy (``TRUSTED_IP_HEADER``) the socket
+    address is the proxy's own, shared by every visitor, so the header is used instead:
+    its left-most entry is the original client."""
+    header = request.app.state.container.settings.trusted_ip_header
+    if header:
+        forwarded = request.headers.get(header, "").split(",")[0].strip()
+        if forwarded:
+            return forwarded
     return request.client.host if request.client else "unknown"
 
 

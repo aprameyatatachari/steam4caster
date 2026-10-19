@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
 from app.api.health import router as health_router
+from app.api.internal import router as internal_router
 from app.api.v1.router import api_router
 from app.core.config import Settings, get_settings
 from app.core.container import Container, build_container
@@ -109,6 +110,10 @@ def create_app(settings: Settings | None = None, container: Container | None = N
         try:
             response = await call_next(request)
             status_code = response.status_code
+            # Serverless: jobs a request queued are written to Redis before it ends.
+            flush = getattr(getattr(request.app.state, "container", None), "tasks", None)
+            if flush is not None and hasattr(flush, "flush"):
+                await flush.flush()
             response.headers["X-Request-ID"] = correlation_id
             return response
         finally:
@@ -135,6 +140,7 @@ def create_app(settings: Settings | None = None, container: Container | None = N
     register_error_handlers(app)
     app.include_router(health_router)
     app.include_router(api_router)
+    app.include_router(internal_router)
 
     if settings.metrics_enabled:
 

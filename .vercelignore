@@ -1,0 +1,32 @@
+# The backend Vercel project bundles the repository root into one Python function.
+# Everything here is excluded from that bundle (the website is its own Vercel project
+# rooted at web/, and the scheduler lives on Cloudflare).
+.venv
+.git
+.github
+.claude
+.impeccable
+.pytest_cache
+.mypy_cache
+.ruff_cache
+__pycache__
+*.pyc
+*.db
+*.sqlite3
+.env
+.env.*
+!.env.example
+artifacts
+web
+cron
+tests
+docs
+scripts
+prompt.md
+PRODUCT.md
+DESIGN.md
+start.bat
+docker-compose.yml
+Dockerfile
+Makefile
+celerybeat-schedule*

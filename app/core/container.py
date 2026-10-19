@@ -160,6 +160,16 @@ def build_notifiers(settings: Settings) -> dict[Channel, NotificationProvider]:
     return notifiers
 
 
+def _dispatcher(settings: Settings, kv: KeyValueStore) -> TaskDispatcher:
+    if settings.tasks_disabled:
+        return RecordingDispatcher()
+    if settings.job_queue == "kv":
+        from app.tasks.queue import KVQueueDispatcher
+
+        return KVQueueDispatcher(kv)
+    return CeleryDispatcher()
+
+
 def build_container(settings: Settings, *, pooled: bool = True) -> Container:
     settings.validate_for_startup()
     kv: KeyValueStore = (
@@ -167,7 +177,7 @@ def build_container(settings: Settings, *, pooled: bool = True) -> Container:
     )
     return Container(
         settings=settings,
-        db=Database(settings.database_url, pooled=pooled),
+        db=Database(settings.database_url, pooled=pooled and settings.db_pooling),
         kv=kv,
         price_provider=build_price_provider(settings, kv),
         notifiers=build_notifiers(settings),
@@ -175,6 +185,6 @@ def build_container(settings: Settings, *, pooled: bool = True) -> Container:
             enabled=settings.ml_enabled, pinned_version=settings.active_model_version
         ),
         cipher=FieldCipher(settings.encryption_secret),
-        tasks=RecordingDispatcher() if settings.tasks_disabled else CeleryDispatcher(),
+        tasks=_dispatcher(settings, kv),
         steam=SteamCommunityProvider(user_agent=settings.provider_user_agent),
     )

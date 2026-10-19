@@ -1,0 +1,12 @@
+{
+  "name": "steam4caster-scheduler",
+  "private": true,
+  "description": "Cloudflare Worker cron that drives Steam4Caster's background jobs on Vercel.",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "logs": "wrangler tail"
+  },
+  "devDependencies": {
+    "wrangler": "4.151.1"
+  }
+}

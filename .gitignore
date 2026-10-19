@@ -28,3 +28,11 @@ Thumbs.db
 
 # Design-skill working files
 .impeccable/
+
+# Scheduler (Cloudflare Worker)
+cron/node_modules/
+cron/.wrangler/
+
+# Vercel CLI project links
+.vercel/
+web/.vercel/

@@ -10,7 +10,7 @@ from datetime import date
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field, SecretStr
+from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 INSECURE_DEV_SECRET = "dev-only-insecure-secret-change-me-please-0123456789"  # noqa: S105
@@ -49,6 +49,19 @@ class Settings(BaseSettings):
     # Run the background jobs inside the API process (single-process deployments with
     # no Celery worker). Takes precedence over the Celery dispatcher.
     inline_jobs: bool = False
+    # Serverless hosting (Vercel): background work is queued in Redis and run by
+    # authenticated calls to /internal/jobs from an external scheduler (a Cloudflare
+    # Worker cron), each call kept inside the platform's request time limit.
+    job_queue: Literal["celery", "kv"] = "celery"
+    # Bearer token the external scheduler must present. Unset disables /internal/jobs.
+    cron_secret: SecretStr | None = None
+    # Seconds of work one /internal/jobs call may start; keep well under the host's limit.
+    job_time_budget_seconds: float = 40.0
+    # False opens one connection per use (serverless functions must not hold a pool).
+    db_pooling: bool = True
+    # Request header holding the visitor's IP when behind a trusted proxy, e.g.
+    # x-forwarded-for on Vercel. Unset uses the socket address.
+    trusted_ip_header: str | None = None
 
     # --- auth --------------------------------------------------------------
     jwt_secret_key: SecretStr = SecretStr(INSECURE_DEV_SECRET)
@@ -143,6 +156,29 @@ class Settings(BaseSettings):
 
     access_token_audience: str = Field(default="steam4caster-api")
 
+    @field_validator("database_url")
+    @classmethod
+    def _normalize_database_url(cls, value: str) -> str:
+        """Accept the libpq-style URLs hosts hand out (Neon, Supabase, Render) and turn
+        them into what SQLAlchemy's asyncpg driver expects."""
+        if value.startswith("postgres://"):
+            value = "postgresql://" + value[len("postgres://") :]
+        if value.startswith("postgresql://"):
+            value = "postgresql+asyncpg://" + value[len("postgresql://") :]
+        if not value.startswith("postgresql+asyncpg://") or "?" not in value:
+            return value
+        base, _, query = value.partition("?")
+        params = []
+        for part in query.split("&"):
+            name, _, arg = part.partition("=")
+            if name == "sslmode":
+                params.append(f"ssl={arg}")
+            elif name in ("channel_binding", "options"):
+                continue  # libpq-only; asyncpg rejects them
+            elif part:
+                params.append(part)
+        return base + ("?" + "&".join(params) if params else "")
+
     @property
     def is_production(self) -> bool:
         return self.app_env == "production"
@@ -204,6 +240,11 @@ class Settings(BaseSettings):
                 problems.append("KV_BACKEND must be 'redis' in production.")
             if self.email_provider == "fake":
                 problems.append("EMAIL_PROVIDER=fake is not allowed in production.")
+        if self.job_queue == "kv":
+            if self.kv_backend != "redis":
+                problems.append("JOB_QUEUE=kv needs KV_BACKEND=redis (a shared queue).")
+            if self.cron_secret is None or len(self.cron_secret.get_secret_value()) < 32:
+                problems.append("JOB_QUEUE=kv needs CRON_SECRET of at least 32 characters.")
         if self.email_provider == "resend" and not self.resend_api_key:
             problems.append("RESEND_API_KEY is required when EMAIL_PROVIDER=resend.")
         if self.sms_enabled and not self.sms_configured:
