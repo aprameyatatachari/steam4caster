@@ -122,7 +122,11 @@ class PriceDataProvider(Protocol):
     async def get_game_info(self, provider_id: str) -> ProviderGameInfo | None: ...
 
     async def get_current_prices(
-        self, provider_ids: Sequence[str], country: str, shop_ids: Sequence[int]
+        self,
+        provider_ids: Sequence[str],
+        country: str,
+        shop_ids: Sequence[int],
+        fresh: bool = False,
     ) -> list[ProviderGamePrices]: ...
 
     async def get_price_history(

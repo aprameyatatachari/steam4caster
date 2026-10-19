@@ -1072,6 +1072,13 @@ svg {
   margin-top: 0.5rem;
 }
 
+.head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .searchbar {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

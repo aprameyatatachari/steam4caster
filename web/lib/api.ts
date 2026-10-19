@@ -187,6 +187,15 @@ export type WatchlistSummary = {
   disclaimer: string;
 };
 
+export type WatchlistRefresh = {
+  entries: number;
+  checked: number;
+  recently_checked: number;
+  changed: number;
+  failed_regions: string[];
+  checked_at: string;
+};
+
 export type WishlistImport = {
   steam_id: string;
   on_wishlist: number;
@@ -444,6 +453,9 @@ export const api = {
   lookup: (steamAppId: number) => request<Game>("/games/lookup", { query: { steam_app_id: steamAppId } }),
   game: (id: string) => request<Game>(`/games/${id}`),
   price: (id: string, country?: string) => request<Price>(`/games/${id}/prices`, { query: { country } }),
+  /** Re-reads the price from the provider now (skipped if checked in the last minute). */
+  refreshPrice: (id: string, country?: string) =>
+    request<Price>(`/games/${id}/prices/refresh`, { method: "POST", query: { country } }),
   async history(id: string, country?: string) {
     const items: HistoryPoint[] = [];
     let cursor: string | null = null;
@@ -478,6 +490,7 @@ export const api = {
   }) => request<WatchlistEntry>("/watchlist", { method: "POST", body }),
   updateEntry: (id: string, body: Record<string, unknown>) =>
     request<WatchlistEntry>(`/watchlist/${id}`, { method: "PATCH", body }),
+  refreshWatchlistPrices: () => request<WatchlistRefresh>("/watchlist/refresh-prices", { method: "POST" }),
   importSteamWishlist: (profile: string) =>
     request<WishlistImport>("/watchlist/import/steam", { method: "POST", body: { profile } }),
   removeEntry: (id: string) => request<null>(`/watchlist/${id}`, { method: "DELETE" }),

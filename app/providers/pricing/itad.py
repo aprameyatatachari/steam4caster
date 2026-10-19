@@ -227,7 +227,11 @@ class IsThereAnyDealProvider:
         return self._parse("info", parse, payload)
 
     async def get_current_prices(
-        self, provider_ids: Sequence[str], country: str, shop_ids: Sequence[int]
+        self,
+        provider_ids: Sequence[str],
+        country: str,
+        shop_ids: Sequence[int],
+        fresh: bool = False,
     ) -> list[ProviderGamePrices]:
         results: list[ProviderGamePrices] = []
         ids = list(dict.fromkeys(provider_ids))

@@ -130,7 +130,11 @@ class ScriptedProvider:
         return [p for p in self.series.get(country, []) if p.timestamp >= since]
 
     async def get_current_prices(
-        self, provider_ids: Sequence[str], country: str, shop_ids: Sequence[int]
+        self,
+        provider_ids: Sequence[str],
+        country: str,
+        shop_ids: Sequence[int],
+        fresh: bool = False,
     ) -> list[ProviderGamePrices]:
         self._enter("prices")
         series = self.series.get(country, [])

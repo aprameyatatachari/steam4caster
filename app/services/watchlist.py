@@ -15,6 +15,7 @@ from app.core.container import Container
 from app.core.errors import ConflictError, NotFoundError, UpstreamUnavailable, ValidationFailed
 from app.core.logging import get_logger
 from app.core.money import normalize_country, normalize_currency
+from app.core.timeutil import utcnow
 from app.forecasting.policy import probability_within
 from app.models import Forecast, Game, Recommendation, RegionalGamePrice, User, WatchlistEntry
 from app.models.enums import Channel
@@ -22,12 +23,13 @@ from app.providers.pricing.base import (
     ProviderError,
     ProviderGame,
     ProviderGameInfo,
+    ProviderUnavailable,
 )
 from app.providers.steam import SteamProfileNotFound, SteamUnavailable
 from app.repositories import forecasts as forecasts_repo
 from app.repositories import games as games_repo
 from app.repositories import prices as prices_repo
-from app.services.catalog import CatalogService
+from app.services.catalog import CatalogService, provider_errors
 from app.services.prices import PriceService
 
 logger = get_logger(__name__)
@@ -278,6 +280,13 @@ class WatchlistService:
             watched.add(candidate.id)
             added.append(candidate)
         await self.session.commit()
+        if added:
+            try:
+                await PriceService(self.session, self.container).refresh_current(
+                    added, shop, user.default_country
+                )
+            except ProviderError as exc:
+                logger.warning("prices unavailable after import", extra={"code": exc.code})
         for game in added:
             self.container.tasks.enqueue(
                 "prices.process_series", str(game.id), user.default_country
@@ -291,6 +300,49 @@ class WatchlistService:
             "not_found": not_found,
             "failed": failed,
             "skipped_over_limit": max(0, len(dict.fromkeys(app_ids)) - limit),
+        }
+
+    async def refresh_prices(self, user: User) -> dict[str, Any]:
+        """Re-read current prices for everything the user watches, straight from the
+        provider (one batched call per region). Games whose price changed are queued
+        for a new forecast and an alert check."""
+        entries = list(
+            await self.session.scalars(
+                select(WatchlistEntry).where(
+                    WatchlistEntry.user_id == user.id, WatchlistEntry.is_active.is_(True)
+                )
+            )
+        )
+        shop = await CatalogService(self.session, self.container).steam_shop()
+        prices = PriceService(self.session, self.container)
+        by_country: dict[str, list[uuid.UUID]] = {}
+        for entry in entries:
+            by_country.setdefault(entry.country, []).append(entry.game_id)
+        checked = recent = changed = 0
+        failed: list[str] = []
+        for country, game_ids in by_country.items():
+            games = list(await self.session.scalars(select(Game).where(Game.id.in_(game_ids))))
+            try:
+                result = await prices.refresh_on_request(games, shop, country)
+            except ProviderError as exc:
+                logger.warning("watchlist refresh failed", extra={"code": exc.code})
+                failed.append(country)
+                continue
+            checked += result["checked"]
+            recent += result["recent"]
+            changed += len(result["changed"])
+            for game_id in result["changed"]:
+                self.container.tasks.enqueue("prices.process_series", str(game_id), country)
+        if failed and len(failed) == len(by_country):
+            async with provider_errors():
+                raise ProviderUnavailable("watchlist refresh failed")
+        return {
+            "entries": len(entries),
+            "checked": checked,
+            "recently_checked": recent,
+            "changed": changed,
+            "failed_regions": failed,
+            "checked_at": utcnow(),
         }
 
     async def update(self, user: User, entry_id: uuid.UUID, changes: dict[str, Any]) -> EntryView:

@@ -239,7 +239,11 @@ class FakePriceProvider:
         return [p for p in self._series(g, country) if p.timestamp >= since]
 
     async def get_current_prices(
-        self, provider_ids: Sequence[str], country: str, shop_ids: Sequence[int]
+        self,
+        provider_ids: Sequence[str],
+        country: str,
+        shop_ids: Sequence[int],
+        fresh: bool = False,
     ) -> list[ProviderGamePrices]:
         self._count("prices")
         results: list[ProviderGamePrices] = []

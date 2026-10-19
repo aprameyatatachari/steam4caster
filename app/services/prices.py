@@ -10,6 +10,7 @@ import uuid
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime, time, timedelta
+from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -101,7 +102,7 @@ class PriceService:
         return inserted > 0
 
     async def refresh_current(
-        self, games: Sequence[Game], shop: Shop, country: str
+        self, games: Sequence[Game], shop: Shop, country: str, *, fresh: bool = False
     ) -> list[uuid.UUID]:
         """Batch-refresh current prices for one country. Returns ids of games whose
         price changed (a new observation was recorded). Idempotent under replays."""
@@ -109,7 +110,7 @@ class PriceService:
         if not by_itad:
             return []
         results = await self.provider.get_current_prices(
-            list(by_itad), country, [shop.provider_shop_id]
+            list(by_itad), country, [shop.provider_shop_id], fresh=fresh
         )
         changed: list[uuid.UUID] = []
         for item in results:
@@ -124,6 +125,25 @@ class PriceService:
             await self.rebuild_sale_events(game_id, shop, country)
         await self.session.commit()
         return changed
+
+    async def refresh_on_request(
+        self, games: Sequence[Game], shop: Shop, country: str
+    ) -> dict[str, Any]:
+        """A user asked for current prices: query the provider directly (no cache) for
+        every game not already checked in the last ``price_manual_min_age_seconds``, in
+        one batched call. The floor stops repeated page loads from hammering the
+        provider; a just-checked price is as fresh as a new call would be."""
+        floor = timedelta(seconds=self.settings.price_manual_min_age_seconds)
+        stored = await prices_repo.regional_prices_for(
+            self.session, [(g.id, country) for g in games], shop.id
+        )
+        now = utcnow()
+        due = [
+            g for g in games
+            if (row := stored.get((g.id, country))) is None or now - row.fetched_at >= floor
+        ]  # fmt: skip
+        changed = await self.refresh_current(due, shop, country, fresh=True) if due else []
+        return {"checked": len(due), "recent": len(games) - len(due), "changed": changed}
 
     async def get_current(
         self, game: Game, shop: Shop, country: str, *, allow_refresh: bool = True

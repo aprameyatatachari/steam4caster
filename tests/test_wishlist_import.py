@@ -114,6 +114,8 @@ async def test_import_adds_new_games_and_is_safe_to_repeat(
     assert all(
         e["country"] == "US" and set(e["channels"]) == {"EMAIL", "WEB_PUSH"} for e in watchlist
     )
+    # Current prices are fetched during the import, before the queue reaches the games.
+    assert all(e["current"] is not None for e in watchlist)
 
     again = await client.post(
         "/api/v1/watchlist/import/steam",

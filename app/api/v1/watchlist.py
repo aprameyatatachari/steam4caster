@@ -9,6 +9,7 @@ from app.schemas.watchlist import (
     LikelySale,
     WatchlistCreate,
     WatchlistEntryOut,
+    WatchlistRefreshOut,
     WatchlistSummary,
     WatchlistUpdate,
     WishlistImportOut,
@@ -69,6 +70,24 @@ async def import_steam_wishlist(
 ) -> WishlistImportOut:
     result = await WatchlistService(session, container).import_steam_wishlist(user, body.profile)
     return WishlistImportOut(**result)
+
+
+@router.post(
+    "/refresh-prices",
+    response_model=WatchlistRefreshOut,
+    dependencies=[
+        Depends(rate_limit_by_user("price-refresh", "rate_limit_price_refresh_per_minute", 60))
+    ],
+    summary="Re-read current prices for the whole watchlist now",
+    description="Queries the price provider directly (bypassing the cache) in one batched "
+    "call per region. Games checked in the last minute are skipped. Games whose price "
+    "changed get a new forecast and an alert check shortly after.",
+)
+async def refresh_prices(
+    user: CurrentUser, session: SessionDep, container: ContainerDep
+) -> WatchlistRefreshOut:
+    result = await WatchlistService(session, container).refresh_prices(user)
+    return WatchlistRefreshOut(**result)
 
 
 @router.get(

@@ -11,6 +11,17 @@ from app.schemas.common import ESTIMATE_NOTICE, ApiModel, CountryCode, CurrencyC
 from app.services.watchlist import CurrencySummary, EntryView
 
 
+class WatchlistRefreshOut(ApiModel):
+    entries: int
+    checked: int = Field(description="Games whose price was read from the provider now.")
+    recently_checked: int = Field(
+        description="Games skipped because their price was checked moments ago."
+    )
+    changed: int = Field(description="Games whose price changed; their forecasts update next.")
+    failed_regions: list[str]
+    checked_at: datetime
+
+
 class WatchlistCreate(ApiModel):
     model_config = ConfigDict(
         json_schema_extra={

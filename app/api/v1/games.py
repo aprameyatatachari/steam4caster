@@ -118,6 +118,38 @@ async def get_prices(
     return price_out(row, shop_row.slug, container.settings.price_stale_after_seconds)
 
 
+@router.post(
+    "/{game_id}/prices/refresh",
+    response_model=PriceOut,
+    dependencies=[
+        Depends(rate_limit_by_user("price-refresh", "rate_limit_price_refresh_per_minute", 60))
+    ],
+    summary="Re-read the current price from the provider now",
+    description="Bypasses the cache unless the price was checked in the last minute.",
+)
+async def refresh_price(
+    game_id: uuid.UUID,
+    user: CurrentUser,
+    session: SessionDep,
+    container: ContainerDep,
+    country: CountryQuery = None,
+    shop: ShopQuery = "steam",
+) -> PriceOut:
+    catalog = CatalogService(session, container)
+    game = await catalog.get(game_id)
+    shop_row = await catalog.resolve_shop(shop)
+    region = country or user.default_country
+    prices = PriceService(session, container)
+    async with provider_errors():
+        result = await prices.refresh_on_request([game], shop_row, region)
+    if result["changed"]:
+        container.tasks.enqueue("prices.process_series", str(game.id), region)
+    row = await prices.get_current(game, shop_row, region, allow_refresh=False)
+    if row is None:
+        raise NotFoundError(f"No Steam price is available for this game in {region}.")
+    return price_out(row, shop_row.slug, container.settings.price_stale_after_seconds)
+
+
 @router.get(
     "/{game_id}/history",
     response_model=HistoryPage,

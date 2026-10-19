@@ -103,15 +103,20 @@ class CachingPriceProvider:
         )
 
     async def get_current_prices(
-        self, provider_ids: Sequence[str], country: str, shop_ids: Sequence[int]
+        self,
+        provider_ids: Sequence[str],
+        country: str,
+        shop_ids: Sequence[int],
+        fresh: bool = False,
     ) -> list[ProviderGamePrices]:
-        """Per-game cache entries so a batch only fetches the games that missed."""
+        """Per-game cache entries so a batch only fetches the games that missed.
+        ``fresh`` skips the cache read (a user asked for a refresh) but still updates it."""
         adapter = TypeAdapter(ProviderGamePrices)
         shops = sorted(shop_ids)
         found: dict[str, ProviderGamePrices] = {}
         missing: list[str] = []
         for provider_id in dict.fromkeys(provider_ids):
-            raw = await self._kv.get(_key("prices", provider_id, country, shops))
+            raw = None if fresh else await self._kv.get(_key("prices", provider_id, country, shops))
             if raw is None:
                 PROVIDER_CACHE.labels("prices", "miss").inc()
                 missing.append(provider_id)

@@ -63,6 +63,8 @@ export default function GamePage() {
   const [data, setData] = useState<Loaded | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [rec, setRec] = useState<Recommendation | null>(null);
+  const [priceBusy, setPriceBusy] = useState(false);
+  const [priceNote, setPriceNote] = useState<string | null>(null);
   const [wait, setWait] = useState(30);
   const [entry, setEntry] = useState<WatchlistEntry | null | undefined>(undefined);
   const [past, setPast] = useState<Forecast[]>([]);
@@ -77,10 +79,15 @@ export default function GamePage() {
         // The forecast call makes sure history and the current price are ingested first.
         const [game, forecast] = await Promise.all([api.game(id), api.forecast(id, country)]);
         const [price, history, sales] = await Promise.all([
-          api.price(id, country).catch((err) => {
-            if (err instanceof ApiError && err.status === 404) return null;
-            throw err;
-          }),
+          // A page load re-reads the price from the provider; if that is refused
+          // (rate limit, provider down) the stored price is shown instead.
+          api
+            .refreshPrice(id, country)
+            .catch((err) => (err instanceof ApiError && err.status === 404 ? Promise.reject(err) : api.price(id, country)))
+            .catch((err) => {
+              if (err instanceof ApiError && err.status === 404) return null;
+              throw err;
+            }),
           api.history(id, country),
           api.saleEvents(id, country),
         ]);
@@ -110,6 +117,21 @@ export default function GamePage() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, wait, id, country]);
+
+  /** Re-read the current price from the provider on demand. */
+  const refreshPrice = async () => {
+    setPriceBusy(true);
+    setPriceNote(null);
+    try {
+      const fresh = await api.refreshPrice(id, country);
+      setData((d) => (d ? { ...d, price: fresh } : d));
+      setPriceNote("Price checked just now");
+    } catch (err) {
+      setPriceNote(errorMessage(err));
+    } finally {
+      setPriceBusy(false);
+    }
+  };
 
   useGSAP(
     () => {
@@ -196,12 +218,20 @@ export default function GamePage() {
               .join(" · ")}
           </p>
         </div>
-        {storeUrl ? (
-          <a className="btn btn-line btn-sm" href={storeUrl} target="_blank" rel="noreferrer">
-            <span>View on Steam</span>
-          </a>
-        ) : null}
+        <div className="head-actions">
+          <Button variant="line" size="sm" onClick={refreshPrice} disabled={priceBusy}>
+            {priceBusy ? "Checking price…" : "Refresh price"}
+          </Button>
+          {storeUrl ? (
+            <a className="btn btn-line btn-sm" href={storeUrl} target="_blank" rel="noreferrer">
+              <span>View on Steam</span>
+            </a>
+          ) : null}
+        </div>
       </div>
+      {priceNote ? (
+        <p className="data muted" role="status" style={{ marginTop: "-0.5rem" }}>{priceNote}</p>
+      ) : null}
 
       <div className="game-top">
         <section className="verdict" data-action={action} aria-labelledby="verdict-title">

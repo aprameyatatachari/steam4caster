@@ -5,8 +5,8 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from "react"
 
 import { Button, ButtonLink, ErrorNote, GameArt, Skeleton, steamUrl } from "@/components/ui";
 import { WishlistImport } from "@/components/WishlistImport";
-import { api, errorMessage, type WatchlistEntry, type WatchlistSummary } from "@/lib/api";
-import { dayMonth, fromMinor, money, pct, toMinor } from "@/lib/format";
+import { api, ApiError, errorMessage, type WatchlistEntry, type WatchlistRefresh, type WatchlistSummary } from "@/lib/api";
+import { dayMonth, fromMinor, money, pct, relativeDays, toMinor } from "@/lib/format";
 import { EASE, gsap, prefersReducedMotion, useGSAP } from "@/lib/motion";
 
 export default function WatchlistPage() {
@@ -14,6 +14,9 @@ export default function WatchlistPage() {
   const [summary, setSummary] = useState<WatchlistSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshed, setRefreshed] = useState<WatchlistRefresh | null>(null);
+  const [refreshError, setRefreshError] = useState<string | null>(null);
   const root = useRef<HTMLElement>(null);
 
   const load = useCallback(async () => {
@@ -26,14 +29,33 @@ export default function WatchlistPage() {
     }
   }, []);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  /** Re-read every watched game's price from the provider, then reload the list. */
+  const refreshPrices = useCallback(
+    async (manual: boolean) => {
+      setRefreshing(true);
+      setRefreshError(null);
+      try {
+        setRefreshed(await api.refreshWatchlistPrices());
+      } catch (err) {
+        // A page load that lands on the rate limit just shows the stored prices.
+        if (manual || !(err instanceof ApiError && err.status === 429)) setRefreshError(errorMessage(err));
+      } finally {
+        setRefreshing(false);
+      }
+      await load();
+    },
+    [load],
+  );
 
-  // A freshly added game has no forecast for a few seconds while the job runs.
+  // Show what is stored at once, then check the provider for anything newer.
+  useEffect(() => {
+    load().then(() => refreshPrices(false));
+  }, [load, refreshPrices]);
+
+  // Games still waiting for their first forecast: look again every 30 seconds.
   useEffect(() => {
     if (!entries?.some((e) => !e.forecast)) return;
-    const timer = window.setTimeout(load, 5000);
+    const timer = window.setTimeout(load, 30_000);
     return () => window.clearTimeout(timer);
   }, [entries, load]);
 
@@ -64,6 +86,7 @@ export default function WatchlistPage() {
   }
 
   const counts = summary?.recommendation_counts ?? {};
+  const pending = entries.filter((e) => !e.forecast).length;
 
   return (
     <main className="page wrap" ref={root}>
@@ -74,8 +97,26 @@ export default function WatchlistPage() {
             {entries.length} {entries.length === 1 ? "game" : "games"} · {counts.BUY ?? 0} buy · {counts.WAIT ?? 0} wait · {counts.NEUTRAL ?? 0} neutral
           </p>
         </div>
-        <ButtonLink href="/app" variant="line" size="sm">Add a game</ButtonLink>
+        <div className="head-actions">
+          <Button variant="line" size="sm" onClick={() => refreshPrices(true)} disabled={refreshing}>
+            {refreshing ? "Checking prices…" : "Refresh prices"}
+          </Button>
+          <ButtonLink href="/app" variant="line" size="sm">Add a game</ButtonLink>
+        </div>
       </div>
+      <p className="data muted" role="status" style={{ marginTop: "-0.5rem" }}>
+        {refreshing
+          ? "Checking current prices with IsThereAnyDeal…"
+          : refreshed
+            ? `Prices checked ${relativeDays(refreshed.checked_at) === "today" ? "just now" : relativeDays(refreshed.checked_at)} · ${refreshed.changed} changed${refreshed.failed_regions.length ? ` · could not reach the provider for ${refreshed.failed_regions.join(", ")}` : ""}`
+            : " "}
+      </p>
+      {refreshError ? <p className="notice">{refreshError}</p> : null}
+      {pending > 0 ? (
+        <p className="notice">
+          Building price history and forecasts for {pending} {pending === 1 ? "game" : "games"}. Prices are already current; forecasts appear here as each one finishes.
+        </p>
+      ) : null}
 
       {summary?.totals.map((t) => {
         const points = [

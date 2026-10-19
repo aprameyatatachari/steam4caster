@@ -92,6 +92,8 @@ class Settings(BaseSettings):
     cache_ttl_prices_seconds: int = 30 * 60
     cache_ttl_history_seconds: int = 3 * 3600
     price_stale_after_seconds: int = 3 * 3600
+    # A user-requested refresh skips games whose price was checked this recently.
+    price_manual_min_age_seconds: int = 60
     history_backfill_start: date = date(2012, 1, 1)
     history_overlap_hours: int = 48
     metadata_refresh_days: int = 14
@@ -148,6 +150,8 @@ class Settings(BaseSettings):
     rate_limit_wishlist_import_per_hour: int = 6
     # Unauthenticated landing-page endpoints, per client IP.
     rate_limit_public_per_minute: int = 60
+    # User-requested price refreshes (button and page loads), per user.
+    rate_limit_price_refresh_per_minute: int = 12
     best_deals_min_discount_pct: int = 50
     # Most wishlist games added per import, taken in the owner's ranked order.
     wishlist_import_max: int = 100
