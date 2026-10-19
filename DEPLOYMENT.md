@@ -106,6 +106,13 @@ npx wrangler deploy
 `npx wrangler tail`; each run logs which jobs were due and how much queued work was
 drained.
 
+## Region
+
+`vercel.json` pins the backend to `sin1` (Singapore) because the Neon database is in
+`ap-southeast-1`. Each page makes dozens of database round trips; from Vercel's
+default Mumbai region a game page took about 10 s, from Singapore 0.8 s. If the
+database ever moves, move the function region with it.
+
 ## Limits to keep in mind
 
 | Limit | Value | Effect here |
