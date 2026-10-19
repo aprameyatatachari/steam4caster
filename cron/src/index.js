@@ -10,7 +10,7 @@
  * Settings: API_URL (wrangler.toml) and the CRON_SECRET secret (`wrangler secret put`).
  */
 
-/** Drain calls per trigger. Each is at most ~40 s of work on the backend. */
+/** Drain calls per trigger. Each starts at most 20 s of work on the backend. */
 const MAX_DRAINS = 12;
 
 async function call(env, path) {

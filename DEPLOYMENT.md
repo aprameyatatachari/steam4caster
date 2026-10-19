@@ -22,9 +22,11 @@ so there is no Celery worker or Beat here. Instead:
   periodic jobs that are due (price refresh every 3 hours, backfill hourly, daily
   forecasts and scoring), `/run/{name}` runs each one, `/drain` works through the
   queue, and `/run/dispatch_outbox` delivers notifications last.
-- Every call stops starting new work after 40 seconds (`JOB_TIME_BUDGET_SECONDS`),
-  well inside Vercel's 60. Unfinished work stays queued for the next call or the next
-  trigger.
+- Every call stops starting new work after 20 seconds (`JOB_TIME_BUDGET_SECONDS`).
+  One job can itself take about 30 seconds (a game's first full history download), so
+  20 + 30 + a cold start stays inside Vercel's 60. Unfinished work stays queued for
+  the next call or the next trigger. Measured on the first live run: drain calls of
+  41-52 s with a 40 s budget, which is why the budget is 20.
 - The calls carry `Authorization: Bearer <CRON_SECRET>`. Without `CRON_SECRET` the
   routes do not exist.
 
@@ -108,7 +110,7 @@ drained.
 
 | Limit | Value | Effect here |
 | --- | --- | --- |
-| Vercel function duration | 60 s | job calls stop at 40 s and resume next call |
+| Vercel function duration | 60 s | job calls start no new work after 20 s and resume next call |
 | Vercel function bundle | 500 MB | the backend's dependencies are about 400 MB on Linux; adding a large library could break deploys |
 | Cloudflare free Worker | 50 sub-requests per run | a run makes at most ~22 |
 | Neon free compute | suspends when idle | the 10-minute cron leaves gaps for it to sleep |

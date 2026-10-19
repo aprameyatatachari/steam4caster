@@ -140,3 +140,15 @@ async def test_rate_limits_use_the_visitor_ip_behind_a_trusted_proxy(
     assert (await client.get("/api/v1/public/calibration", headers=one)).status_code == 429
     # A different visitor behind the same proxy has their own allowance.
     assert (await client.get("/api/v1/public/calibration", headers=two)).status_code == 200
+
+
+async def test_warm_showcase_queues_the_weeks_deals(
+    client: httpx.AsyncClient, container: Container
+) -> None:
+    enable_scheduler(container)
+    container.tasks = KVQueueDispatcher(container.kv)
+    container.settings.best_deals_min_discount_pct = 1
+    ran = await client.post("/internal/jobs/run/warm_showcase", headers=AUTH)
+    assert ran.status_code == 200, ran.text
+    queued = ran.json()["result"]["queued"]
+    assert queued == await container.kv.length(queue.QUEUE_KEY)

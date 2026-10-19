@@ -55,8 +55,10 @@ class Settings(BaseSettings):
     job_queue: Literal["celery", "kv"] = "celery"
     # Bearer token the external scheduler must present. Unset disables /internal/jobs.
     cron_secret: SecretStr | None = None
-    # Seconds of work one /internal/jobs call may start; keep well under the host's limit.
-    job_time_budget_seconds: float = 40.0
+    # No new job starts after this many seconds of a /internal/jobs call. One job (a
+    # game's first history download) can itself take ~30 s, so on a 60 s host this must
+    # leave that much room: 20 + 30 + cold start stays under the limit.
+    job_time_budget_seconds: float = 20.0
     # False opens one connection per use (serverless functions must not hold a pool).
     db_pooling: bool = True
     # Request header holding the visitor's IP when behind a trusted proxy, e.g.

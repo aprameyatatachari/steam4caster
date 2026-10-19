@@ -20,7 +20,6 @@ from app.core.container import Container
 from app.core.kv import distributed_lock
 from app.core.logging import get_logger
 from app.core.timeutil import utcnow
-from app.forecasting.training.trainer import InsufficientTrainingData
 from app.models import Game
 from app.providers.pricing.base import ProviderError
 from app.repositories import forecasts as forecasts_repo
@@ -29,7 +28,6 @@ from app.services.alerts import AlertService
 from app.services.catalog import CatalogService
 from app.services.dispatcher import OutboxDispatcher
 from app.services.forecasts import ForecastService
-from app.services.models import ModelService
 from app.services.performance import PerformanceService
 from app.services.prices import PriceService
 
@@ -172,6 +170,18 @@ async def evaluate_outcomes(container: Container) -> dict[str, Any]:
         return {"evaluated": await PerformanceService(session, container).evaluate_matured()}
 
 
+async def warm_showcase(container: Container, country: str = "IN") -> dict[str, Any]:
+    """Queue this week's landing-page deals for a refresh, so their first snapshot is
+    served from stored history instead of a 30-second provider download."""
+    from app.services.showcase import SHOWCASE_SIZE, ShowcaseService
+
+    async with container.db.session() as session:
+        deals = await ShowcaseService(session, container).best_deals(country, SHOWCASE_SIZE)
+    for game, _ in deals:
+        container.tasks.enqueue(PROCESS_SERIES, str(game.id), country)
+    return {"queued": len(deals)}
+
+
 async def dispatch_outbox(container: Container) -> dict[str, Any]:
     async with container.db.session() as session:
         return await OutboxDispatcher(session, container).dispatch_pending()
@@ -184,6 +194,11 @@ async def send_digests(container: Container) -> dict[str, Any]:
 
 async def train_if_due(container: Container, force: bool = False) -> dict[str, Any]:
     """Train a candidate when enough new data has arrived. Never activates it."""
+    # Imported here: LightGBM needs OpenMP (libgomp), which serverless runtimes such as
+    # Vercel's lack. Only training loads it, so the API and other jobs still start there.
+    from app.forecasting.training.trainer import InsufficientTrainingData
+    from app.services.models import ModelService
+
     settings = container.settings
     if not (settings.training_schedule_enabled or force):
         return {"skipped": "training schedule disabled"}
